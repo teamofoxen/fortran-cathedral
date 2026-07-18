@@ -1,5 +1,5 @@
 {
-  "generator": "FORTY 0.6.0",
+  "generator": "FORTY 0.7.0",
   "base": "https://teamofoxen.github.io/fortran-cathedral",
   "routes": [
     {
@@ -21,6 +21,11 @@
       "slug": "blas",
       "file": "book-of-blas.html",
       "title": "The Book of BLAS"
+    },
+    {
+      "slug": "hall",
+      "file": "hall-of-deprecated-syntax.html",
+      "title": "The Hall of Deprecated Syntax"
     },
     {
       "slug": "confessional",

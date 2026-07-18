@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Six historical Fortran features with their precise fates: standard, obsolescent, deleted, never standard, or extension. Verdicts by compiler probe.">
+<meta name="generator" content="FORTY 0.7.0">
+<title>The Hall of Deprecated Syntax &#183; Fortran Cathedral</title>
+<link rel="icon" type="image/svg+xml" href="assets/ornament.svg">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/cathedral.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <img src="assets/ornament.svg" alt="" width="64" height="64">
+  <p class="site-title">Fortran Cathedral</p>
+  <p class="tagline">The web, as IBM never intended.</p>
+</header>
+<nav aria-label="Cathedral">
+  <ul>
+    <li><a href="index.html">The Nave</a></li>
+    <li><a href="why-it-still-stands.html">Why It Stands</a></li>
+    <li><a href="testaments.html">The Testaments</a></li>
+    <li><a href="book-of-blas.html">Book of BLAS</a></li>
+    <li><a href="hall-of-deprecated-syntax.html" aria-current="page">The Hall</a></li>
+    <li><a href="confessional.html">The Confessional</a></li>
+  </ul>
+</nav>
+<main id="main">
+<h1>The Hall of Deprecated Syntax</h1>
+<p>Languages retire their past in different ways, and flattening them all into &#8220;deprecated&#8221; teaches nothing. This hall keeps six exhibits, each labeled with its precise fate. Five fates are possible:</p>
+<dl class="glossary" id="hall-legend">
+  <dt>Currently standard</dt>
+  <dd>In the present standard, unretired &#8212; however unfashionable.</dd>
+  <dt>Obsolescent</dt>
+  <dd>Still standard, formally discouraged; better means exist and removal may come.</dd>
+  <dt>Deleted</dt>
+  <dd>Removed from a named edition of the standard. Compilers may still accept it for the old scriptures.</dd>
+  <dt>Never standard, historically common</dt>
+  <dd>Vendor custom so widespread it was mistaken for the standard.</dd>
+  <dt>Compiler extension</dt>
+  <dd>Accepted by a compiler beyond the standard, documented as such.</dd>
+</dl>
+<p>Every classification below is cited, and every scroll carries the compiler&#39;s own testimony &#8212; measured by this site&#39;s generator invoking GFortran at build time, under <code>-std=f2018</code> and in its merciful default, then measured again by the validator. The Cathedral does not assert what it can probe.</p>
+<section class="verse">
+<h2 id="hall-arithmetic-if">The Arithmetic IF</h2>
+<figure>
+  <figcaption>The historical scroll</figcaption>
+<pre><code><span class="hl-c">C     THE ARITHMETIC IF: THREE-WAY BRANCH ON SIGN.</span>
+<span class="hl-c">C     OBSOLESCENT IN FORTRAN 90; DELETED IN FORTRAN 2018.</span>
+      <span class="hl-k">PROGRAM</span> ARIF
+      <span class="hl-k">INTEGER</span> K
+      K = <span class="hl-n">0</span>
+      <span class="hl-k">IF</span> (K) <span class="hl-n">10</span>, <span class="hl-n">20</span>, <span class="hl-n">30</span>
+   <span class="hl-n">10</span> <span class="hl-k">STOP</span> <span class="hl-s">&#39;NEGATIVE&#39;</span>
+   <span class="hl-n">20</span> <span class="hl-k">STOP</span> <span class="hl-s">&#39;ZERO&#39;</span>
+   <span class="hl-n">30</span> <span class="hl-k">STOP</span> <span class="hl-s">&#39;POSITIVE&#39;</span>
+      <span class="hl-k">END</span>
+</code></pre>
+</figure>
+<p>One test, three destinations: negative, zero, or positive, each named by a statement label. On the IBM 704, whose hardware compared against zero in a single breath, this was the natural shape of a branch.</p>
+<dl class="glossary">
+  <dt>Classification</dt>
+  <dd>Deleted &#8212; declared obsolescent in Fortran 90 and deleted outright in Fortran 2018<sup class="cite"><a href="#src-1">[1]</a></sup>.</dd>
+  <dt>The modern preference</dt>
+  <dd>The block IF: <code>if &#8230; else if &#8230; else</code>, which says the three cases in words.</dd>
+  <dt>The compiler's testimony</dt>
+  <dd>REJECTED UNDER -std=f2018; ACCEPTED AS AN EXTENSION BY DEFAULT &#8212; <code>Error: Fortran 2018 deleted feature: Arithmetic IF statement</code></dd>
+</dl>
+<figure>
+  <figcaption>The modern reading</figcaption>
+<pre><code><span class="hl-c">! The modern reading: say the three cases outright.</span>
+<span class="hl-k">program</span> arif
+  <span class="hl-k">implicit</span> <span class="hl-k">none</span>
+  <span class="hl-k">integer</span> :: k
+  k = <span class="hl-n">0</span>
+  <span class="hl-k">if</span> (k &lt; <span class="hl-n">0</span>) <span class="hl-k">then</span>
+    <span class="hl-k">stop</span> <span class="hl-s">&#39;negative&#39;</span>
+  <span class="hl-k">else</span> <span class="hl-k">if</span> (k == <span class="hl-n">0</span>) <span class="hl-k">then</span>
+    <span class="hl-k">stop</span> <span class="hl-s">&#39;zero&#39;</span>
+  <span class="hl-k">else</span>
+    <span class="hl-k">stop</span> <span class="hl-s">&#39;positive&#39;</span>
+  <span class="hl-k">end</span> <span class="hl-k">if</span>
+<span class="hl-k">end</span> <span class="hl-k">program</span> arif
+</code></pre>
+</figure>
+<p><em>The modern reading&#39;s testimony:</em> ACCEPTED CLEANLY UNDER -std=f2018.</p>
+</section>
+<section class="verse">
+<h2 id="hall-hollerith">Hollerith Constants</h2>
+<figure>
+  <figcaption>The historical scroll</figcaption>
+<pre><code><span class="hl-c">C     HOLLERITH CONSTANTS: CHARACTERS COUNTED INTO NUMERIC STORAGE.</span>
+<span class="hl-c">C     FORTRAN 66 PRACTICE; REMOVED FROM THE FORTRAN 77 STANDARD.</span>
+      <span class="hl-k">PROGRAM</span> HOLLER
+      <span class="hl-k">INTEGER</span> GREET(<span class="hl-n">2</span>)
+      DATA GREET /<span class="hl-n">4</span>HHELO, <span class="hl-n">4</span>H WLD/
+      <span class="hl-k">WRITE</span> (*, <span class="hl-s">&#39;(2A4)&#39;</span>) GREET
+      <span class="hl-k">END</span>
+</code></pre>
+</figure>
+<p>Characters counted into numeric storage &#8212; <code>4HHELO</code> is the four characters HELO packed into an integer &#8212; from the age before Fortran had a character type at all.</p>
+<dl class="glossary">
+  <dt>Classification</dt>
+  <dd>Deleted &#8212; Fortran 66 practice removed from the FORTRAN 77 standard (kept only in an appendix); the related H edit descriptor lingered until its deletion in Fortran 95<sup class="cite"><a href="#src-2">[2]</a></sup>. Lives on as a documented compiler extension<sup class="cite"><a href="#src-4">[4]</a></sup>.</dd>
+  <dt>The modern preference</dt>
+  <dd>The character type, standard since FORTRAN 77: characters live in character variables.</dd>
+  <dt>The compiler's testimony</dt>
+  <dd>REJECTED UNDER -std=f2018; ACCEPTED AS AN EXTENSION BY DEFAULT &#8212; <code>Error: Legacy Extension: Hollerith constant</code></dd>
+</dl>
+<figure>
+  <figcaption>The modern reading</figcaption>
+<pre><code><span class="hl-c">! The modern reading: characters live in character variables.</span>
+<span class="hl-k">program</span> holler
+  <span class="hl-k">implicit</span> <span class="hl-k">none</span>
+  <span class="hl-k">character</span>(len=<span class="hl-n">8</span>) :: greet
+  greet = <span class="hl-s">&#39;HELO WLD&#39;</span>
+  <span class="hl-k">print</span> <span class="hl-s">&#39;(a)&#39;</span>, greet
+<span class="hl-k">end</span> <span class="hl-k">program</span> holler
+</code></pre>
+</figure>
+<p><em>The modern reading&#39;s testimony:</em> ACCEPTED CLEANLY UNDER -std=f2018.</p>
+</section>
+<section class="verse">
+<h2 id="hall-computed-goto">The Computed GO TO</h2>
+<figure>
+  <figcaption>The historical scroll</figcaption>
+<pre><code><span class="hl-c">C     THE COMPUTED GO TO: BRANCH BY POSITION IN A LABEL LIST.</span>
+<span class="hl-c">C     OBSOLESCENT SINCE FORTRAN 95; STILL IN THE STANDARD.</span>
+      <span class="hl-k">PROGRAM</span> CGOTO
+      <span class="hl-k">INTEGER</span> K
+      K = <span class="hl-n">2</span>
+      GO TO (<span class="hl-n">10</span>, <span class="hl-n">20</span>, <span class="hl-n">30</span>), K
+   <span class="hl-n">10</span> <span class="hl-k">STOP</span> <span class="hl-s">&#39;ONE&#39;</span>
+   <span class="hl-n">20</span> <span class="hl-k">STOP</span> <span class="hl-s">&#39;TWO&#39;</span>
+   <span class="hl-n">30</span> <span class="hl-k">STOP</span> <span class="hl-s">&#39;THREE&#39;</span>
+      <span class="hl-k">END</span>
+</code></pre>
+</figure>
+<p>Branch by position: an integer selects the k-th label from a list. A jump table written by hand, and the ancestor of every dispatch switch.</p>
+<dl class="glossary">
+  <dt>Classification</dt>
+  <dd>Obsolescent &#8212; since Fortran 95, and still in the standard today<sup class="cite"><a href="#src-2">[2]</a></sup>.</dd>
+  <dt>The modern preference</dt>
+  <dd>The <code>select case</code> construct, which names its branches and needs no labels<sup class="cite"><a href="#src-2">[2]</a></sup>.</dd>
+  <dt>The compiler's testimony</dt>
+  <dd>ACCEPTED WITH WARNING UNDER -std=f2018 &#8212; <code>Warning: Obsolescent feature: Computed GOTO</code></dd>
+</dl>
+<figure>
+  <figcaption>The modern reading</figcaption>
+<pre><code><span class="hl-c">! The modern reading: select case names its branches.</span>
+<span class="hl-k">program</span> cgoto
+  <span class="hl-k">implicit</span> <span class="hl-k">none</span>
+  <span class="hl-k">integer</span> :: k
+  k = <span class="hl-n">2</span>
+  select case (k)
+  case (<span class="hl-n">1</span>)
+    <span class="hl-k">stop</span> <span class="hl-s">&#39;one&#39;</span>
+  case (<span class="hl-n">2</span>)
+    <span class="hl-k">stop</span> <span class="hl-s">&#39;two&#39;</span>
+  case (<span class="hl-n">3</span>)
+    <span class="hl-k">stop</span> <span class="hl-s">&#39;three&#39;</span>
+  <span class="hl-k">end</span> select
+<span class="hl-k">end</span> <span class="hl-k">program</span> cgoto
+</code></pre>
+</figure>
+<p><em>The modern reading&#39;s testimony:</em> ACCEPTED CLEANLY UNDER -std=f2018.</p>
+</section>
+<section class="verse">
+<h2 id="hall-statement-function">The Statement Function</h2>
+<figure>
+  <figcaption>The historical scroll</figcaption>
+<pre><code><span class="hl-c">C     THE STATEMENT FUNCTION: A ONE-LINE FUNCTION IN THE DECLARATIONS.</span>
+<span class="hl-c">C     OBSOLESCENT SINCE FORTRAN 95; SUPERSEDED BY INTERNAL FUNCTIONS.</span>
+      <span class="hl-k">PROGRAM</span> STF
+      <span class="hl-k">REAL</span> AREA, R
+      AREA(R) = <span class="hl-n">3.14159</span> * R * R
+      <span class="hl-k">WRITE</span> (*, *) AREA(<span class="hl-n">2.0</span>)
+      <span class="hl-k">END</span>
+</code></pre>
+</figure>
+<p>A one-line function defined among the declarations &#8212; compact, convenient, and subject to famously nonintuitive restrictions.</p>
+<dl class="glossary">
+  <dt>Classification</dt>
+  <dd>Obsolescent &#8212; since Fortran 95; wholly superseded<sup class="cite"><a href="#src-2">[2]</a></sup>.</dd>
+  <dt>The modern preference</dt>
+  <dd>The internal function after <code>contains</code>: checked, typed, and free of the old restrictions<sup class="cite"><a href="#src-2">[2]</a></sup><sup class="cite"><a href="#src-3">[3]</a></sup>.</dd>
+  <dt>The compiler's testimony</dt>
+  <dd>ACCEPTED WITH WARNING UNDER -std=f2018 &#8212; <code>Warning: Obsolescent feature: Statement function</code></dd>
+</dl>
+<figure>
+  <figcaption>The modern reading</figcaption>
+<pre><code><span class="hl-c">! The modern reading: an internal function, checked and contained.</span>
+<span class="hl-k">program</span> stf
+  <span class="hl-k">implicit</span> <span class="hl-k">none</span>
+  <span class="hl-k">print</span> *, area(<span class="hl-n">2.0</span>)
+<span class="hl-k">contains</span>
+  pure <span class="hl-k">function</span> area(r) <span class="hl-k">result</span>(a)
+    <span class="hl-k">real</span>, <span class="hl-k">intent</span>(in) :: r
+    <span class="hl-k">real</span> :: a
+    a = <span class="hl-n">3.14159</span> * r * r
+  <span class="hl-k">end</span> <span class="hl-k">function</span> area
+<span class="hl-k">end</span> <span class="hl-k">program</span> stf
+</code></pre>
+</figure>
+<p><em>The modern reading&#39;s testimony:</em> ACCEPTED CLEANLY UNDER -std=f2018.</p>
+</section>
+<section class="verse">
+<h2 id="hall-plain-goto">The Plain GO TO</h2>
+<figure>
+  <figcaption>The historical scroll</figcaption>
+<pre><code><span class="hl-c">C     THE PLAIN GO TO: AN UNCONDITIONAL JUMP TO A LABEL.</span>
+<span class="hl-c">C     FULLY STANDARD TO THIS DAY; MERELY OUT OF FASHION.</span>
+      <span class="hl-k">PROGRAM</span> PGOTO
+      <span class="hl-k">INTEGER</span> I
+      I = <span class="hl-n">0</span>
+   <span class="hl-n">10</span> <span class="hl-k">CONTINUE</span>
+      I = I + <span class="hl-n">1</span>
+      <span class="hl-k">IF</span> (I .LT. <span class="hl-n">3</span>) GO TO <span class="hl-n">10</span>
+      <span class="hl-k">WRITE</span> (*, *) <span class="hl-s">&#39;LOOPED&#39;</span>, I
+      <span class="hl-k">END</span>
+</code></pre>
+</figure>
+<p>The unconditional jump: control moves to the named label, no questions asked. Every loop in this Hall's era was built from it.</p>
+<dl class="glossary">
+  <dt>Classification</dt>
+  <dd>Currently standard &#8212; the unconditional GO TO has never been declared obsolescent or deleted; no standards source lists it among the retired<sup class="cite"><a href="#src-6">[6]</a></sup>. Style retired it; the standard did not. The Hall includes it precisely so &#8220;old&#8221; is not mistaken for &#8220;deprecated&#8221;.</dd>
+  <dt>The modern preference</dt>
+  <dd>Structured constructs &#8212; <code>do</code>, <code>exit</code>, <code>cycle</code>, <code>select case</code> &#8212; wherever they say the intent better.</dd>
+  <dt>The compiler's testimony</dt>
+  <dd>ACCEPTED CLEANLY UNDER -std=f2018</dd>
+</dl>
+<figure>
+  <figcaption>The modern reading</figcaption>
+<pre><code><span class="hl-c">! The modern reading: the loop states its own shape.</span>
+<span class="hl-k">program</span> pgoto
+  <span class="hl-k">implicit</span> <span class="hl-k">none</span>
+  <span class="hl-k">integer</span> :: i
+  <span class="hl-k">do</span> i = <span class="hl-n">1</span>, <span class="hl-n">3</span>
+  <span class="hl-k">end</span> <span class="hl-k">do</span>
+  <span class="hl-k">print</span> *, <span class="hl-s">&#39;looped&#39;</span>, i - <span class="hl-n">1</span>
+<span class="hl-k">end</span> <span class="hl-k">program</span> pgoto
+</code></pre>
+</figure>
+<p><em>The modern reading&#39;s testimony:</em> ACCEPTED CLEANLY UNDER -std=f2018.</p>
+</section>
+<section class="verse">
+<h2 id="hall-real-star-8">REAL*8</h2>
+<figure>
+  <figcaption>The historical scroll</figcaption>
+<pre><code><span class="hl-c">C     REAL*8: BYTE-COUNTED PRECISION BY VENDOR CUSTOM.</span>
+<span class="hl-c">C     NEVER IN ANY STANDARD; UBIQUITOUS ALL THE SAME.</span>
+      <span class="hl-k">PROGRAM</span> RSTAR
+      <span class="hl-k">REAL</span>*<span class="hl-n">8</span> X
+      X = <span class="hl-n">1.0</span>D0 / <span class="hl-n">3.0</span>D0
+      <span class="hl-k">WRITE</span> (*, *) X
+      <span class="hl-k">END</span>
+</code></pre>
+</figure>
+<p>Precision by byte count, in the vendor dialects of the seventies &#8212; so widespread that generations mistook it for scripture.</p>
+<dl class="glossary">
+  <dt>Classification</dt>
+  <dd>Never standard &#8212; a vendor custom in no edition of the standard, carried today as a documented compiler extension<sup class="cite"><a href="#src-5">[5]</a></sup>.</dd>
+  <dt>The modern preference</dt>
+  <dd>Kind parameters: <code>selected_real_kind</code> (Fortran 90) or the named constants of <code>iso_fortran_env</code> (Fortran 2008).</dd>
+  <dt>The compiler's testimony</dt>
+  <dd>REJECTED UNDER -std=f2018; ACCEPTED AS AN EXTENSION BY DEFAULT &#8212; <code>Error: GNU Extension: Nonstandard type declaration REAL*8</code></dd>
+</dl>
+<figure>
+  <figcaption>The modern reading</figcaption>
+<pre><code><span class="hl-c">! The modern reading: precision requested by named kind.</span>
+<span class="hl-k">program</span> rstar
+  <span class="hl-k">use</span>, <span class="hl-k">intrinsic</span> :: iso_fortran_env, <span class="hl-k">only</span>: real64
+  <span class="hl-k">implicit</span> <span class="hl-k">none</span>
+  <span class="hl-k">real</span>(real64) :: x
+  x = <span class="hl-n">1.0</span>_real64 / <span class="hl-n">3.0</span>_real64
+  <span class="hl-k">print</span> *, x
+<span class="hl-k">end</span> <span class="hl-k">program</span> rstar
+</code></pre>
+</figure>
+<p><em>The modern reading&#39;s testimony:</em> ACCEPTED CLEANLY UNDER -std=f2018.</p>
+</section>
+<h2 id="hall-sources">Sources</h2>
+<ol class="sources">
+  <li id="src-1"><a href="https://support.nag.com/nagware/np/r72_doc/nag_f2018.html">NAG Fortran 2018 overview</a></li>
+  <li id="src-2"><a href="https://www.nsc.liu.se/~boein/f77to90/a4.html">Backward and forward compatibility, Fortran 77 to 90 (NSC)</a></li>
+  <li id="src-3"><a href="https://fortranwiki.org/fortran/show/Modernizing+Old+Fortran">Fortran Wiki: Modernizing Old Fortran</a></li>
+  <li id="src-4"><a href="https://gcc.gnu.org/onlinedocs/gfortran/Hollerith-constants-support.html">GNU Fortran manual: Hollerith constants support</a></li>
+  <li id="src-5"><a href="https://gcc.gnu.org/onlinedocs/gfortran/Extensions.html">GNU Fortran manual: Extensions</a></li>
+  <li id="src-6"><a href="https://wg5-fortran.org/fearlier.html">WG5: earlier Fortran standards</a></li>
+</ol>
+<p>Continue through the Cathedral: <a href="testaments.html">Old Testament / Modern Testament</a> for the two source forms side by side, or <a href="why-it-still-stands.html">Why It Still Stands</a> for the wider case.</p>
+</main>
+<footer>
+  <p>Generated by FORTY 0.7.0 &#183; Fortran files: 55 &#183; Heresy: 0 executable lines &#183; JavaScript: 0 lines</p>
+  <p>The language is old. The arrays remain contiguous.</p>
+</footer>
+</body>
+</html>
