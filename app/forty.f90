@@ -14,6 +14,7 @@ program forty
   use forty_github, only: github_status, github_connect, github_verify
   use cathedral_generate, only: run_generate, run_open
   use cathedral_validate, only: run_validate
+  use forty_offer, only: run_offer
   implicit none
 
   type(string_t), allocatable :: argv(:)
@@ -40,7 +41,7 @@ program forty
   ! from its root. The doctor and the help desk see visitors anywhere.
   select case (cli%command)
   case (CMD_STATUS, CMD_BUILD, CMD_TEST, CMD_CONFESS, CMD_CLEAN, CMD_GITHUB, &
-        CMD_GENERATE, CMD_VALIDATE, CMD_OPEN)
+        CMD_GENERATE, CMD_VALIDATE, CMD_OPEN, CMD_OFFER)
     if (.not. in_cathedral_root()) then
       call lament('FORTY SERVES ONE CATHEDRAL. INVOKE HIM FROM ITS ROOT')
       call say('(THE DIRECTORY HOLDING CLAUDE.md, FORTY.md, AND fpm.toml).')
@@ -61,6 +62,7 @@ program forty
   case (CMD_GENERATE); call run_generate(code)
   case (CMD_VALIDATE); call run_validate(code)
   case (CMD_OPEN);     call run_open(code)
+  case (CMD_OFFER);    call run_offer(cli, code)
   case (CMD_GITHUB)
     select case (cli%subcommand)
     case (SUB_STATUS);  call github_status(code)
@@ -88,6 +90,7 @@ contains
     call say('  generate            RAISE THE SITE INTO dist\.')
     call say('  validate            SURVEY THE RAISED FABRIC.')
     call say('  open                OPEN THE PORCH IN YOUR BROWSER.')
+    call say('  offer               COMMIT AND PUSH THROUGH FORTY. ONE CONFIRMATION.')
     call say('  clean               SWEEP build\ AND dist\. ASKS FIRST.')
     call say('  github status       REPORT THE GATEHOUSE.')
     call say('  github connect      THE CONSECRATION RITE. ONE CONFIRMATION.')
@@ -100,6 +103,7 @@ contains
     call say('  --owner=X           REPOSITORY OWNER (DEFAULT: THE AUTHENTICATED SOUL).')
     call say('  --description=X     REPOSITORY DESCRIPTION (MODEST CHARACTERS ONLY).')
     call say('  --visibility=X      public OR private (DEFAULT: public).')
+    call say('  --message=X         THE OFFERING''S COMMIT MESSAGE.')
     call blank()
     call say('THE DUMBEST REASONABLE TASK SHOULD BE WRITTEN IN FORTRAN.')
   end subroutine print_help

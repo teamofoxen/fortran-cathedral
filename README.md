@@ -29,6 +29,7 @@ forty confess             MEASURE HERESY. AUDIT THE LEDGER.
 forty generate            RAISE THE SITE INTO dist\.
 forty validate            SURVEY THE RAISED FABRIC.
 forty open                OPEN THE PORCH IN YOUR BROWSER.
+forty offer               COMMIT AND PUSH THROUGH FORTY. ONE CONFIRMATION.
 forty clean               SWEEP build\ AND dist\. ASKS FIRST.
 forty github status       REPORT THE GATEHOUSE.
 forty github connect      THE CONSECRATION RITE. ONE CONFIRMATION.
@@ -96,6 +97,12 @@ Phase 1 complete: **the smallest real cathedral stands.**
 - 111 trials passing. 33 validator checks upheld. Deterministic output.
 - Executable heresy: 0 lines, enforced by trial and by a validator that
   refuses any script tag in the porch.
+
+Phase 1.1 ordained the Offering Rite: routine commits and pushes now pass
+through `forty offer` — inspection, residue refusal, one confirmation,
+halt-on-failure, and accord verification, all owned by Fortran. The manual
+Phase 1 commit that preceded this rite is permanently recorded in the
+ledger's operational chapter and displayed in the public Confessional.
 
 Further wings — the Book of BLAS, the Hall of Deprecated Syntax, the
 Saints of Numerical Computing — await their phases.

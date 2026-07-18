@@ -8,6 +8,7 @@ module cathedral_validate
   use forty_paths, only: file_exists
   use forty_run, only: run_result, run_cmd, read_all_lines
   use forty_canon, only: EXIT_OK, EXIT_FAIL, CANON_BASE_URL
+  use forty_confess, only: transgression_t, ledger_transgressions
   use cathedral_routes, only: route_t, routes
   implicit none
   private
@@ -87,6 +88,8 @@ contains
     call check(count_substr(doc, 'User-agent: *') == 1, 'ALL AGENTS ARE ADDRESSED')
     call check(count_substr(doc, 'Sitemap: ') == 1, 'THE MAP IS PROCLAIMED TO THEM')
 
+    call check_operational_record()
+
     call rule()
     if (n_breach == 0) then
       call say('THE FABRIC IS SOUND. ' // int_to_str(n_checks) // ' CHECKS UPHELD.')
@@ -97,6 +100,27 @@ contains
       exit_code = EXIT_FAIL
     end if
   end subroutine run_validate
+
+  !> Every transgression the Ledger records must be displayed, by
+  !> commit hash, in the public Confessional. History does not hide.
+  subroutine check_operational_record()
+    type(string_t), allocatable :: ledger(:)
+    type(transgression_t), allocatable :: trans(:)
+    logical :: wellformed
+    character(:), allocatable :: page
+    integer :: i
+    call read_all_lines('HERESY_LEDGER.md', ledger)
+    call ledger_transgressions(ledger, trans, wellformed)
+    call check(wellformed, 'THE OPERATIONAL CHAPTER IS PRESENT AND WELL-FORMED')
+    page = slurp('dist\confessional.html')
+    do i = 1, size(trans)
+      if (len(trans(i)%commit) >= 7) then
+        call check(count_substr(page, trans(i)%commit) >= 1, &
+                   'THE CONFESSIONAL DISPLAYS TRANSGRESSION ' // int_to_str(i) // &
+                   ' (' // trans(i)%commit(1:7) // ')')
+      end if
+    end do
+  end subroutine check_operational_record
 
   subroutine check(cond, label)
     logical, intent(in) :: cond

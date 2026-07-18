@@ -147,6 +147,8 @@ contains
     call fact_row(body, 'Non-Fortran executable files', int_to_str(facts%heresy_files))
     call fact_row(body, 'JavaScript shipped to this page', '0 lines')
     call fact_row(body, 'Routes generated', int_to_str(facts%route_count))
+    call fact_row(body, 'Operational transgressions recorded', &
+                  int_to_str(size(facts%trans)))
     call fact_row(body, 'Generator', escape_html(facts%generator))
     call push_string(body, '  </tbody>')
     call push_string(body, '</table>')
@@ -168,6 +170,14 @@ contains
     call push_string(body, '</ul>')
     call para(body, 'HTML, CSS, SVG, XML, and JSON in this site are declarative ' // &
       'artifacts, all emitted by Fortran. They are output, not code.')
+
+    call h2(body, 'The operational record')
+    call para(body, 'Not every sin is a line of code. The ledger keeps a second ' // &
+      'chapter for operational transgressions — moments when the builders ' // &
+      'failed the architecture even while the code stayed pure. These entries ' // &
+      'are permanent. This page renders them directly from the ledger, so the ' // &
+      'accounting below cannot drift from the record:')
+    call transgression_tables(facts, body)
 
     call h2(body, 'The pipeline')
     call para(body, 'There is no framework behind this page. A route registry in ' // &
@@ -211,6 +221,42 @@ contains
     character(*), intent(in) :: html
     call push_string(lines, '  <li>' // html // '</li>')
   end subroutine li
+
+  !> Every recorded transgression, rendered from the Ledger itself.
+  subroutine transgression_tables(facts, body)
+    type(build_facts_t), intent(in) :: facts
+    type(string_t), allocatable, intent(inout) :: body(:)
+    integer :: i
+    if (size(facts%trans) == 0) then
+      call para(body, 'No operational transgressions are recorded.')
+      return
+    end if
+    do i = 1, size(facts%trans)
+      call push_string(body, '<table>')
+      call push_string(body, '  <caption>Transgression ' // int_to_str(i) // &
+                       ' of ' // int_to_str(size(facts%trans)) // '</caption>')
+      call push_string(body, '  <tbody>')
+      call trans_row(body, 'Date', escape_html(facts%trans(i)%date))
+      call trans_row(body, 'Event', escape_html(facts%trans(i)%event))
+      call trans_row(body, 'Commit', '<code>' // &
+                     escape_html(facts%trans(i)%commit) // '</code>')
+      call trans_row(body, 'Executable non-Fortran lines introduced', &
+                     escape_html(facts%trans(i)%exec_lines))
+      call trans_row(body, 'Why it violated the Cathedral', &
+                     escape_html(facts%trans(i)%why))
+      call trans_row(body, 'Remediation', escape_html(facts%trans(i)%remediation))
+      call trans_row(body, 'Status', escape_html(facts%trans(i)%status))
+      call push_string(body, '  </tbody>')
+      call push_string(body, '</table>')
+    end do
+  end subroutine transgression_tables
+
+  subroutine trans_row(lines, measure, value_html)
+    type(string_t), allocatable, intent(inout) :: lines(:)
+    character(*), intent(in) :: measure, value_html
+    call push_string(lines, '    <tr><th scope="row">' // measure // &
+                     '</th><td>' // value_html // '</td></tr>')
+  end subroutine trans_row
 
   subroutine fact_row(lines, measure, value)
     type(string_t), allocatable, intent(inout) :: lines(:)

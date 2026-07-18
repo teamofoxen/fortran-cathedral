@@ -47,8 +47,12 @@ program test_forty
   use forty_cli
   use forty_paths, only: quote, temp_root
   use forty_run, only: run_result, run_cmd, read_all_lines, write_lines, delete_file
-  use forty_confess, only: classify, ledger_entries, &
+  use forty_confess, only: classify, ledger_entries, transgression_t, &
+                           ledger_transgressions, split_cells, &
                            CLASS_FORTRAN, CLASS_DECLARATIVE, CLASS_HERESY, CLASS_OTHER
+  use forty_offer, only: build_offer_plan, check_offer_ground, &
+                         categorize_porcelain, offering_acceptable, &
+                         porcelain_path, run_offer
   use forty_git, only: slug_from_url, valid_slug
   use forty_github, only: plan_step_t, build_connect_plan, parse_login
   use forty_canon, only: CANON_DESCRIPTION, CANON_BASE_URL
@@ -77,6 +81,13 @@ program test_forty
   call trial_site_generation()
   call trial_determinism()
   call trial_validator_teeth()
+  call trial_transgressions()
+  call trial_commit_messages()
+  call trial_offer_plan()
+  call trial_porcelain()
+  call trial_residue()
+  call trial_offer_ground_and_accord()
+  call trial_offer_discipline()
 
   call summary()
   if (n_fail > 0) call exit(1)
@@ -197,24 +208,193 @@ contains
   subroutine trial_ledger()
     type(string_t), allocatable :: lines(:), entries(:)
 
-    allocate (lines(3))
-    lines(1)%s = '| File or component | Language | Executable lines | Purpose | Why | Removal |'
-    lines(2)%s = '|---|---:|---:|---|---|---|'
-    lines(3)%s = '| None | - | 0 | - | - | - |'
+    allocate (lines(4))
+    lines(1)%s = '## Current ledger'
+    lines(2)%s = '| File or component | Language | Executable lines | Purpose | Why | Removal |'
+    lines(3)%s = '|---|---:|---:|---|---|---|'
+    lines(4)%s = '| None | - | 0 | - | - | - |'
     call ledger_entries(lines, entries)
     call check(size(entries) == 0, 'A PURE LEDGER YIELDS NO ENTRIES')
 
-    deallocate (lines); allocate (lines(4))
-    lines(1)%s = '| File or component | Language | Executable lines | Purpose | Why | Removal |'
-    lines(2)%s = '|---|---:|---:|---|---|---|'
-    lines(3)%s = '| `heresy/x.js` | JavaScript | 12 | pump | boundary | purge |'
-    lines(4)%s = 'Prose outside the table is ignored.'
+    deallocate (lines); allocate (lines(8))
+    lines(1)%s = '## Current ledger'
+    lines(2)%s = '| File or component | Language | Executable lines | Purpose | Why | Removal |'
+    lines(3)%s = '|---|---:|---:|---|---|---|'
+    lines(4)%s = '| `heresy/x.js` | JavaScript | 12 | pump | boundary | purge |'
+    lines(5)%s = 'Prose outside the table is ignored.'
+    lines(6)%s = '## Operational transgressions'
+    lines(7)%s = '|---|---|---|---:|---|---|---|'
+    lines(8)%s = '| 2026-07-18 | An event | `abc1234` | 0 | why | how | Historical. |'
     call ledger_entries(lines, entries)
     call check(size(entries) == 1, 'ONE SIN, ONE ENTRY')
     if (size(entries) == 1) then
       call check_str(entries(1)%s, 'heresy/x.js', 'THE SIN IS NAMED WITHOUT BACKTICKS')
     end if
   end subroutine trial_ledger
+
+  subroutine trial_transgressions()
+    type(string_t), allocatable :: lines(:), cells(:), ledger(:)
+    type(transgression_t), allocatable :: trans(:)
+    logical :: wellformed
+    integer :: i
+    logical :: found
+
+    call split_cells('| a | `b` |  c  |', cells)
+    call check(size(cells) == 3, 'THREE CELLS ARE CUT FROM THE ROW')
+    if (size(cells) == 3) then
+      call check_str(cells(2)%s, 'b', 'BACKTICKS ARE SHED')
+      call check_str(cells(3)%s, 'c', 'CELLS ARE TRIMMED')
+    end if
+
+    allocate (lines(4))
+    lines(1)%s = '## Operational transgressions'
+    lines(2)%s = '| Date | Event | Commit | Executable non-Fortran lines introduced | Why | Remediation | Status |'
+    lines(3)%s = '|---|---|---|---:|---|---|---|'
+    lines(4)%s = '| 2026-07-18 | Manual push | `abc1234def` | 0 | haste | forty offer | Historical. |'
+    call ledger_transgressions(lines, trans, wellformed)
+    call check(wellformed, 'A FULL ROW IS WELL-FORMED')
+    call check(size(trans) == 1, 'ONE TRANSGRESSION IS READ')
+    if (size(trans) == 1) then
+      call check_str(trans(1)%commit, 'abc1234def', 'THE COMMIT IS NAMED')
+      call check_str(trans(1)%exec_lines, '0', 'THE LINE COUNT IS NUMERIC')
+      call check_str(trans(1)%status, 'Historical.', 'THE STATUS ENDURES')
+    end if
+
+    lines(4)%s = '| 2026-07-18 | Too few cells | `abc` | 0 |'
+    call ledger_transgressions(lines, trans, wellformed)
+    call check(.not. wellformed, 'A TRUNCATED ROW IS CONDEMNED')
+
+    deallocate (lines); allocate (lines(1))
+    lines(1)%s = 'No chapter here.'
+    call ledger_transgressions(lines, trans, wellformed)
+    call check(.not. wellformed, 'A MISSING CHAPTER IS CONDEMNED')
+
+    call read_all_lines('HERESY_LEDGER.md', ledger)
+    call ledger_transgressions(ledger, trans, wellformed)
+    call check(wellformed, 'THE TRUE LEDGER''S CHAPTER IS WELL-FORMED')
+    call check(size(trans) >= 1, 'THE TRUE LEDGER REMEMBERS AT LEAST ONE')
+    found = .false.
+    do i = 1, size(trans)
+      if (index(trans(i)%commit, 'd2c9f0be') > 0) found = .true.
+    end do
+    call check(found, 'THE PHASE 1 TRANSGRESSION IS PERMANENTLY NAMED')
+  end subroutine trial_transgressions
+
+  subroutine trial_commit_messages()
+    call check(valid_commit_message('PHASE 1.1: FORTY RECEIVES THE OFFERING.'), &
+               'THE CANONICAL MESSAGE IS FIT')
+    call check(.not. valid_commit_message(''), 'AN EMPTY MESSAGE IS NOT')
+    call check(.not. valid_commit_message('   '), 'BLANKS ALONE ARE NOT')
+    call check(.not. valid_commit_message('with "quotes"'), &
+               'QUOTED MESSAGES ARE REFUSED')
+    call check(.not. valid_commit_message('100% done'), &
+               'PERCENT IS REFUSED IN MESSAGES')
+    call check(.not. valid_commit_message(repeat('m', 201)), &
+               'EXCESSIVE MESSAGES ARE REFUSED')
+  end subroutine trial_commit_messages
+
+  subroutine trial_offer_plan()
+    type(plan_step_t), allocatable :: steps(:)
+    steps = build_offer_plan('SEAL THE WORK.')
+    call check(size(steps) == 3, 'THE OFFERING HAS THREE COMMANDS')
+    if (size(steps) == 3) then
+      call check_str(steps(1)%command, 'git add -A', 'FIRST IT GATHERS')
+      call check(index(steps(2)%command, 'git commit -m "SEAL THE WORK."') == 1, &
+                 'THEN IT SEALS WITH THE GIVEN WORDS')
+      call check(index(steps(2)%command, 'Co-Authored-By') > 0, &
+                 'THE TRAILER RIDES WITH THE SEAL')
+      call check_str(steps(3)%command, 'git push', 'THEN IT LIFTS')
+    end if
+  end subroutine trial_offer_plan
+
+  subroutine trial_porcelain()
+    type(string_t), allocatable :: lines(:), paths(:)
+    integer :: n_mod, n_new, n_del, n_ren
+    call check_str(porcelain_path(' M src/a.f90'), 'src/a.f90', &
+                   'THE MODIFIED PATH IS READ')
+    call check_str(porcelain_path('?? new.f90'), 'new.f90', &
+                   'THE NEW PATH IS READ')
+    call check_str(porcelain_path('R  old.md -> new.md'), 'new.md', &
+                   'THE RENAME YIELDS ITS TARGET')
+    call check_str(porcelain_path(' M "a b.txt"'), 'a b.txt', &
+                   'QUOTED PATHS ARE UNWRAPPED')
+    allocate (lines(4))
+    lines(1)%s = ' M src/a.f90'
+    lines(2)%s = '?? src/new.f90'
+    lines(3)%s = 'D  gone.md'
+    lines(4)%s = 'R  old.md -> new.md'
+    call categorize_porcelain(lines, n_mod, n_new, n_del, n_ren, paths)
+    call check(n_mod == 1 .and. n_new == 1 .and. n_del == 1 .and. n_ren == 1, &
+               'THE TABLE IS COUNTED TRULY')
+    call check(size(paths) == 4, 'EVERY PATH IS GATHERED')
+  end subroutine trial_porcelain
+
+  subroutine trial_residue()
+    type(string_t), allocatable :: paths(:)
+    logical :: ok
+    character(:), allocatable :: offending
+    allocate (paths(2))
+    paths(1)%s = 'src/forty_offer.f90'
+    paths(2)%s = 'HERESY_LEDGER.md'
+    call offering_acceptable(paths, ok, offending)
+    call check(ok, 'HONEST WORKS ARE ACCEPTED')
+    deallocate (paths); allocate (paths(2))
+    paths(1)%s = 'src/ok.f90'
+    paths(2)%s = 'build/sneaky.o'
+    call offering_acceptable(paths, ok, offending)
+    call check(.not. ok, 'YARD RESIDUE IS REFUSED')
+    call check_str(offending, 'build/sneaky.o', 'THE OFFENDER IS NAMED')
+    deallocate (paths); allocate (paths(1))
+    paths(1)%s = 'dist/index.html'
+    call offering_acceptable(paths, ok, offending)
+    call check(.not. ok, 'PORCH RESIDUE IS REFUSED')
+  end subroutine trial_residue
+
+  subroutine trial_offer_ground_and_accord()
+    logical :: ready
+    character(:), allocatable :: why
+    type(run_result) :: ra, rb
+    call check_offer_ground(ready, why)
+    call check(ready, 'THE CONSECRATED GROUND IS FIT FOR OFFERINGS')
+    call check(len(why) == 0, 'NO COMPLAINT IS RAISED AGAINST IT')
+    ra = run_cmd('git rev-parse HEAD')
+    rb = run_cmd('git rev-parse origin/main')
+    call check(ra%exit_code == 0 .and. rb%exit_code == 0 .and. &
+               size(ra%out) > 0 .and. size(rb%out) > 0, &
+               'BOTH HEADS CAN BE NAMED')
+    if (size(ra%out) > 0 .and. size(rb%out) > 0) then
+      call check(ra%out(1)%s == rb%out(1)%s, &
+                 'THE ACCORD HOLDS IN THE TRUE REPOSITORY')
+    end if
+  end subroutine trial_offer_ground_and_accord
+
+  subroutine trial_offer_discipline()
+    type(cli_t) :: cli
+    type(run_result) :: before, after
+    integer :: code
+    ! An unfit message is refused before any inspection of the tree.
+    cli%message = 'bad "message"'
+    cli%dry_run = .true.
+    call set_muted(.true.)
+    call run_offer(cli, code)
+    call set_muted(.false.)
+    call check(code == 2, 'AN UNFIT MESSAGE IS A USAGE FAULT')
+    ! A dry run plans everything and performs nothing.
+    before = run_cmd('git rev-parse HEAD')
+    cli%message = 'A FIT MESSAGE FOR A DRY RUN.'
+    cli%dry_run = .true.
+    call set_muted(.true.)
+    call run_offer(cli, code)
+    call set_muted(.false.)
+    call check(code == 0, 'THE DRY RUN CONCLUDES IN PEACE')
+    after = run_cmd('git rev-parse HEAD')
+    call check(size(before%out) > 0 .and. size(after%out) > 0, &
+               'HEAD CAN BE NAMED TWICE')
+    if (size(before%out) > 0 .and. size(after%out) > 0) then
+      call check(before%out(1)%s == after%out(1)%s, &
+                 'THE DRY RUN SEALED NOTHING')
+    end if
+  end subroutine trial_offer_discipline
 
   subroutine trial_fixture_counting()
     type(string_t), allocatable :: lines(:), got(:)
@@ -376,6 +556,11 @@ contains
     doc = slurp_file('dist\sitemap.xml')
     call check(count_substr(doc, CANON_BASE_URL // '/index.html') == 1, &
                'THE MAP KNOWS THE NAVE')
+    doc = slurp_file('dist\confessional.html')
+    call check(count_substr(doc, 'd2c9f0be63f28b7ecf136c1b9b81a7bd993132db') >= 1, &
+               'THE CONFESSIONAL DISPLAYS THE TRANSGRESSION''S COMMIT')
+    call check(count_substr(doc, 'The operational record') >= 1, &
+               'THE OPERATIONAL RECORD HAS ITS SECTION')
     call set_muted(.true.)
     call run_validate(code)
     call set_muted(.false.)

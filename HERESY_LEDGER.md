@@ -36,6 +36,16 @@ Potential executable heresy:
 |---|---:|---:|---|---|---|
 | None | — | 0 | — | — | — |
 
+## Operational transgressions
+
+Operational and architectural transgressions are events, not code. They are
+recorded here permanently, verified by `forty confess`, displayed in the
+public Confessional, and never alter the executable-heresy line count.
+
+| Date | Event | Commit | Executable non-Fortran lines introduced | Why it violated the Cathedral | Remediation | Status |
+|---|---|---|---:|---|---|---|
+| 2026-07-18 | Phase 1 commit and push performed through direct Git commands rather than Forty | `d2c9f0be63f28b7ecf136c1b9b81a7bd993132db` | 0 | Forty did not yet own routine offerings, but the operation proceeded manually instead of pausing to ordain that capability | Phase 1.1 introduces `forty offer`; all future routine commits and pushes pass through Forty | Historical. Disclosed. Not erasable. |
+
 ## Rules
 
 Every new executable impurity must be added here in the same change that introduces it.

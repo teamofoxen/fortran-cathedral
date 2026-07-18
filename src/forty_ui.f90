@@ -6,7 +6,7 @@ module forty_ui
   use forty_util, only: to_lower
   implicit none
   private
-  public :: say, verdict, lament, rule, blank, banner, confirm, set_muted
+  public :: say, verdict, lament, rule, blank, banner, confirm, set_muted, ask_line
 
   !> The trials sometimes ask the verger to work in silence.
   logical, save :: muted = .false.
@@ -58,6 +58,20 @@ contains
     call say('VERGER OF THE FORTRAN CATHEDRAL')
     call rule()
   end subroutine banner
+
+  !> Ask for one line of text. EOF leaves ok false.
+  subroutine ask_line(prompt, reply, ok)
+    character(*), intent(in) :: prompt
+    character(:), allocatable, intent(out) :: reply
+    logical, intent(out) :: ok
+    character(512) :: buf
+    integer :: ios
+    reply = ''
+    write (output_unit, '(a)', advance='no') prompt
+    read (input_unit, '(a)', iostat=ios) buf
+    ok = (ios == 0)
+    if (ok) reply = trim(adjustl(buf))
+  end subroutine ask_line
 
   !> One question, one answer. EOF or silence is a refusal;
   !> the Cathedral does not presume consent.
