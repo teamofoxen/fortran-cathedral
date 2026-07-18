@@ -4,7 +4,7 @@
 module forty_paths
   implicit none
   private
-  public :: file_exists, in_cathedral_root, quote, temp_root
+  public :: file_exists, in_cathedral_root, quote, temp_root, set_cwd
   public :: BUILD_OPS_DIR, BUILD_BIN_DIR, STAMP_PATH, ORDAINED_EXE
 
   character(*), parameter :: BUILD_OPS_DIR = 'build\forty'
@@ -34,6 +34,16 @@ contains
     character(:), allocatable :: r
     r = '"' // path // '"'
   end function quote
+
+  !> Change the working directory. Used by the trials to enter their
+  !> fixture repositories; the GNU chdir extension serves.
+  subroutine set_cwd(dir, ok)
+    character(*), intent(in) :: dir
+    logical, intent(out) :: ok
+    integer :: st
+    call chdir(dir, st)
+    ok = (st == 0)
+  end subroutine set_cwd
 
   !> The operating system's appointed place for ephemera.
   function temp_root() result(r)

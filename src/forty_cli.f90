@@ -9,13 +9,17 @@ module forty_cli
   public :: cli_t, parse_cli
   public :: CMD_NONE, CMD_HELP, CMD_VERSION, CMD_STATUS, CMD_DOCTOR, CMD_BUILD
   public :: CMD_TEST, CMD_CONFESS, CMD_CLEAN, CMD_GITHUB, CMD_UNKNOWN
+  public :: CMD_GENERATE, CMD_VALIDATE, CMD_OPEN, CMD_OFFER, CMD_ATONE
   public :: SUB_NONE, SUB_STATUS, SUB_CONNECT, SUB_VERIFY, SUB_UNKNOWN
   public :: valid_repo_name, valid_owner_name, valid_description, valid_visibility
+  public :: valid_commit_message
 
   integer, parameter :: CMD_NONE = 0, CMD_HELP = 1, CMD_VERSION = 2
   integer, parameter :: CMD_STATUS = 3, CMD_DOCTOR = 4, CMD_BUILD = 5
   integer, parameter :: CMD_TEST = 6, CMD_CONFESS = 7, CMD_CLEAN = 8
   integer, parameter :: CMD_GITHUB = 9, CMD_UNKNOWN = 99
+  integer, parameter :: CMD_GENERATE = 11, CMD_VALIDATE = 12, CMD_OPEN = 13
+  integer, parameter :: CMD_OFFER = 14, CMD_ATONE = 15
   integer, parameter :: SUB_NONE = 0, SUB_STATUS = 1, SUB_CONNECT = 2
   integer, parameter :: SUB_VERIFY = 3, SUB_UNKNOWN = 99
 
@@ -32,6 +36,8 @@ module forty_cli
     character(:), allocatable :: owner
     character(:), allocatable :: description
     character(:), allocatable :: visibility
+    character(:), allocatable :: message
+    character(:), allocatable :: rite
     character(:), allocatable :: errmsg
   end type cli_t
 
@@ -47,6 +53,8 @@ contains
     cli%owner = ''
     cli%description = CANON_DESCRIPTION
     cli%visibility = 'public'
+    cli%message = ''
+    cli%rite = ''
     cli%errmsg = ''
 
     if (size(argv) == 0) then
@@ -65,6 +73,11 @@ contains
     case ('confess'); cli%command = CMD_CONFESS
     case ('clean');   cli%command = CMD_CLEAN
     case ('github');  cli%command = CMD_GITHUB
+    case ('generate'); cli%command = CMD_GENERATE
+    case ('validate'); cli%command = CMD_VALIDATE
+    case ('open');     cli%command = CMD_OPEN
+    case ('offer');    cli%command = CMD_OFFER
+    case ('atone');    cli%command = CMD_ATONE
     case default
       cli%command = CMD_UNKNOWN
       cli%errmsg = 'UNKNOWN COMMAND: ' // argv(1)%s
@@ -90,6 +103,19 @@ contains
       i = 3
     end if
 
+    if (cli%command == CMD_ATONE) then
+      if (size(argv) < 2) then
+        cli%errmsg = 'ATONE REQUIRES A RITE NAME: phase-1-manual-offering'
+        return
+      end if
+      if (starts_with(argv(2)%s, '--')) then
+        cli%errmsg = 'ATONE REQUIRES A RITE NAME BEFORE ITS OPTIONS.'
+        return
+      end if
+      cli%rite = to_lower(argv(2)%s)
+      i = 3
+    end if
+
     do while (i <= size(argv))
       a = argv(i)%s
       if (a == '--dry-run') then
@@ -102,6 +128,8 @@ contains
         cli%owner = a(9:)
       else if (starts_with(a, '--description=')) then
         cli%description = a(15:)
+      else if (starts_with(a, '--message=')) then
+        cli%message = a(11:)
       else if (starts_with(a, '--visibility=')) then
         cli%visibility = to_lower(a(14:))
       else
@@ -154,6 +182,13 @@ contains
     end do
     ok = .true.
   end function valid_description
+
+  !> A commit message: nonempty, bounded, and free of cmd.exe's runes.
+  pure function valid_commit_message(s) result(ok)
+    character(*), intent(in) :: s
+    logical :: ok
+    ok = (len_trim(s) > 0) .and. valid_description(s)
+  end function valid_commit_message
 
   pure function valid_visibility(s) result(ok)
     character(*), intent(in) :: s

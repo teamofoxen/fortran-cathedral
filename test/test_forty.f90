@@ -45,15 +45,34 @@ program test_forty
   use test_kit
   use forty_util
   use forty_cli
-  use forty_paths, only: quote, temp_root
-  use forty_run, only: run_result, run_cmd, read_all_lines, write_lines, delete_file
-  use forty_confess, only: classify, ledger_entries, &
+  use forty_paths, only: quote, temp_root, set_cwd
+  use forty_run, only: run_result, run_cmd, read_all_lines, write_lines, &
+                       delete_file, version_line
+  use forty_confess, only: classify, ledger_entries, transgression_t, &
+                           ledger_transgressions, split_cells, &
+                           expiation_t, ledger_expiation, &
                            CLASS_FORTRAN, CLASS_DECLARATIVE, CLASS_HERESY, CLASS_OTHER
-  use forty_git, only: slug_from_url, valid_slug
+  use forty_offer, only: build_offer_plan, check_offer_ground, &
+                         categorize_porcelain, offering_acceptable, &
+                         porcelain_path, run_offer
+  use forty_git, only: slug_from_url, valid_slug, is_hash
   use forty_github, only: plan_step_t, build_connect_plan, parse_login
-  use forty_canon, only: CANON_DESCRIPTION
+  use forty_canon, only: CANON_DESCRIPTION, CANON_BASE_URL
+  use forty_ui, only: set_muted, set_scripted_confirm, confirm_consult_count, &
+                      SCRIPT_NONE, SCRIPT_NO
+  use forty_buildops, only: dir_present
+  use forty_atone, only: perform_restitution, expiate_ledger_lines, STATUS_EXPIATED
+  use cathedral_html, only: escape_html, escape_json
+  use cathedral_routes, only: route_t, routes, append_nav
+  use cathedral_generate, only: run_generate
+  use cathedral_validate, only: run_validate
   implicit none
 
+  character(:), allocatable :: saved_root
+  integer, parameter :: ROW_OFFENDER = 1, ROW_NONE = 2, ROW_GHOST = 3, ROW_ROOT = 4
+  character(40), parameter :: GHOST_HASH = repeat('f', 40)
+
+  call capture_root()
   call trial_parse()
   call trial_validators()
   call trial_strings()
@@ -64,6 +83,25 @@ program test_forty
   call trial_plan()
   call trial_login()
   call trial_run_discipline()
+  call trial_escaping()
+  call trial_dir_present()
+  call trial_count_substr()
+  call trial_routes_and_nav()
+  call trial_site_generation()
+  call trial_determinism()
+  call trial_validator_teeth()
+  call trial_transgressions()
+  call trial_commit_messages()
+  call trial_offer_plan()
+  call trial_porcelain()
+  call trial_residue()
+  call trial_offer_ground_and_accord()
+  call trial_offer_discipline()
+  call trial_expiate_transform()
+  call trial_restitution_happy()
+  call trial_restitution_dry_and_decline()
+  call trial_restitution_refusals()
+  call trial_restitution_severed()
 
   call summary()
   if (n_fail > 0) call exit(1)
@@ -184,24 +222,193 @@ contains
   subroutine trial_ledger()
     type(string_t), allocatable :: lines(:), entries(:)
 
-    allocate (lines(3))
-    lines(1)%s = '| File or component | Language | Executable lines | Purpose | Why | Removal |'
-    lines(2)%s = '|---|---:|---:|---|---|---|'
-    lines(3)%s = '| None | - | 0 | - | - | - |'
+    allocate (lines(4))
+    lines(1)%s = '## Current ledger'
+    lines(2)%s = '| File or component | Language | Executable lines | Purpose | Why | Removal |'
+    lines(3)%s = '|---|---:|---:|---|---|---|'
+    lines(4)%s = '| None | - | 0 | - | - | - |'
     call ledger_entries(lines, entries)
     call check(size(entries) == 0, 'A PURE LEDGER YIELDS NO ENTRIES')
 
-    deallocate (lines); allocate (lines(4))
-    lines(1)%s = '| File or component | Language | Executable lines | Purpose | Why | Removal |'
-    lines(2)%s = '|---|---:|---:|---|---|---|'
-    lines(3)%s = '| `heresy/x.js` | JavaScript | 12 | pump | boundary | purge |'
-    lines(4)%s = 'Prose outside the table is ignored.'
+    deallocate (lines); allocate (lines(8))
+    lines(1)%s = '## Current ledger'
+    lines(2)%s = '| File or component | Language | Executable lines | Purpose | Why | Removal |'
+    lines(3)%s = '|---|---:|---:|---|---|---|'
+    lines(4)%s = '| `heresy/x.js` | JavaScript | 12 | pump | boundary | purge |'
+    lines(5)%s = 'Prose outside the table is ignored.'
+    lines(6)%s = '## Operational transgressions'
+    lines(7)%s = '|---|---|---|---:|---|---|---|'
+    lines(8)%s = '| 2026-07-18 | An event | `abc1234` | 0 | why | how | Historical. |'
     call ledger_entries(lines, entries)
     call check(size(entries) == 1, 'ONE SIN, ONE ENTRY')
     if (size(entries) == 1) then
       call check_str(entries(1)%s, 'heresy/x.js', 'THE SIN IS NAMED WITHOUT BACKTICKS')
     end if
   end subroutine trial_ledger
+
+  subroutine trial_transgressions()
+    type(string_t), allocatable :: lines(:), cells(:), ledger(:)
+    type(transgression_t), allocatable :: trans(:)
+    logical :: wellformed
+    integer :: i
+    logical :: found
+
+    call split_cells('| a | `b` |  c  |', cells)
+    call check(size(cells) == 3, 'THREE CELLS ARE CUT FROM THE ROW')
+    if (size(cells) == 3) then
+      call check_str(cells(2)%s, 'b', 'BACKTICKS ARE SHED')
+      call check_str(cells(3)%s, 'c', 'CELLS ARE TRIMMED')
+    end if
+
+    allocate (lines(4))
+    lines(1)%s = '## Operational transgressions'
+    lines(2)%s = '| Date | Event | Commit | Executable non-Fortran lines introduced | Why | Remediation | Status |'
+    lines(3)%s = '|---|---|---|---:|---|---|---|'
+    lines(4)%s = '| 2026-07-18 | Manual push | `abc1234def` | 0 | haste | forty offer | Historical. |'
+    call ledger_transgressions(lines, trans, wellformed)
+    call check(wellformed, 'A FULL ROW IS WELL-FORMED')
+    call check(size(trans) == 1, 'ONE TRANSGRESSION IS READ')
+    if (size(trans) == 1) then
+      call check_str(trans(1)%commit, 'abc1234def', 'THE COMMIT IS NAMED')
+      call check_str(trans(1)%exec_lines, '0', 'THE LINE COUNT IS NUMERIC')
+      call check_str(trans(1)%status, 'Historical.', 'THE STATUS ENDURES')
+    end if
+
+    lines(4)%s = '| 2026-07-18 | Too few cells | `abc` | 0 |'
+    call ledger_transgressions(lines, trans, wellformed)
+    call check(.not. wellformed, 'A TRUNCATED ROW IS CONDEMNED')
+
+    deallocate (lines); allocate (lines(1))
+    lines(1)%s = 'No chapter here.'
+    call ledger_transgressions(lines, trans, wellformed)
+    call check(.not. wellformed, 'A MISSING CHAPTER IS CONDEMNED')
+
+    call read_all_lines('HERESY_LEDGER.md', ledger)
+    call ledger_transgressions(ledger, trans, wellformed)
+    call check(wellformed, 'THE TRUE LEDGER''S CHAPTER IS WELL-FORMED')
+    call check(size(trans) >= 1, 'THE TRUE LEDGER REMEMBERS AT LEAST ONE')
+    found = .false.
+    do i = 1, size(trans)
+      if (index(trans(i)%commit, 'd2c9f0be') > 0) found = .true.
+    end do
+    call check(found, 'THE PHASE 1 TRANSGRESSION IS PERMANENTLY NAMED')
+  end subroutine trial_transgressions
+
+  subroutine trial_commit_messages()
+    call check(valid_commit_message('PHASE 1.1: FORTY RECEIVES THE OFFERING.'), &
+               'THE CANONICAL MESSAGE IS FIT')
+    call check(.not. valid_commit_message(''), 'AN EMPTY MESSAGE IS NOT')
+    call check(.not. valid_commit_message('   '), 'BLANKS ALONE ARE NOT')
+    call check(.not. valid_commit_message('with "quotes"'), &
+               'QUOTED MESSAGES ARE REFUSED')
+    call check(.not. valid_commit_message('100% done'), &
+               'PERCENT IS REFUSED IN MESSAGES')
+    call check(.not. valid_commit_message(repeat('m', 201)), &
+               'EXCESSIVE MESSAGES ARE REFUSED')
+  end subroutine trial_commit_messages
+
+  subroutine trial_offer_plan()
+    type(plan_step_t), allocatable :: steps(:)
+    steps = build_offer_plan('SEAL THE WORK.')
+    call check(size(steps) == 3, 'THE OFFERING HAS THREE COMMANDS')
+    if (size(steps) == 3) then
+      call check_str(steps(1)%command, 'git add -A', 'FIRST IT GATHERS')
+      call check(index(steps(2)%command, 'git commit -m "SEAL THE WORK."') == 1, &
+                 'THEN IT SEALS WITH THE GIVEN WORDS')
+      call check(index(steps(2)%command, 'Co-Authored-By') > 0, &
+                 'THE TRAILER RIDES WITH THE SEAL')
+      call check_str(steps(3)%command, 'git push', 'THEN IT LIFTS')
+    end if
+  end subroutine trial_offer_plan
+
+  subroutine trial_porcelain()
+    type(string_t), allocatable :: lines(:), paths(:)
+    integer :: n_mod, n_new, n_del, n_ren
+    call check_str(porcelain_path(' M src/a.f90'), 'src/a.f90', &
+                   'THE MODIFIED PATH IS READ')
+    call check_str(porcelain_path('?? new.f90'), 'new.f90', &
+                   'THE NEW PATH IS READ')
+    call check_str(porcelain_path('R  old.md -> new.md'), 'new.md', &
+                   'THE RENAME YIELDS ITS TARGET')
+    call check_str(porcelain_path(' M "a b.txt"'), 'a b.txt', &
+                   'QUOTED PATHS ARE UNWRAPPED')
+    allocate (lines(4))
+    lines(1)%s = ' M src/a.f90'
+    lines(2)%s = '?? src/new.f90'
+    lines(3)%s = 'D  gone.md'
+    lines(4)%s = 'R  old.md -> new.md'
+    call categorize_porcelain(lines, n_mod, n_new, n_del, n_ren, paths)
+    call check(n_mod == 1 .and. n_new == 1 .and. n_del == 1 .and. n_ren == 1, &
+               'THE TABLE IS COUNTED TRULY')
+    call check(size(paths) == 4, 'EVERY PATH IS GATHERED')
+  end subroutine trial_porcelain
+
+  subroutine trial_residue()
+    type(string_t), allocatable :: paths(:)
+    logical :: ok
+    character(:), allocatable :: offending
+    allocate (paths(2))
+    paths(1)%s = 'src/forty_offer.f90'
+    paths(2)%s = 'HERESY_LEDGER.md'
+    call offering_acceptable(paths, ok, offending)
+    call check(ok, 'HONEST WORKS ARE ACCEPTED')
+    deallocate (paths); allocate (paths(2))
+    paths(1)%s = 'src/ok.f90'
+    paths(2)%s = 'build/sneaky.o'
+    call offering_acceptable(paths, ok, offending)
+    call check(.not. ok, 'YARD RESIDUE IS REFUSED')
+    call check_str(offending, 'build/sneaky.o', 'THE OFFENDER IS NAMED')
+    deallocate (paths); allocate (paths(1))
+    paths(1)%s = 'dist/index.html'
+    call offering_acceptable(paths, ok, offending)
+    call check(.not. ok, 'PORCH RESIDUE IS REFUSED')
+  end subroutine trial_residue
+
+  subroutine trial_offer_ground_and_accord()
+    logical :: ready
+    character(:), allocatable :: why
+    type(run_result) :: ra, rb
+    call check_offer_ground(ready, why)
+    call check(ready, 'THE CONSECRATED GROUND IS FIT FOR OFFERINGS')
+    call check(len(why) == 0, 'NO COMPLAINT IS RAISED AGAINST IT')
+    ra = run_cmd('git rev-parse HEAD')
+    rb = run_cmd('git rev-parse origin/main')
+    call check(ra%exit_code == 0 .and. rb%exit_code == 0 .and. &
+               size(ra%out) > 0 .and. size(rb%out) > 0, &
+               'BOTH HEADS CAN BE NAMED')
+    if (size(ra%out) > 0 .and. size(rb%out) > 0) then
+      call check(ra%out(1)%s == rb%out(1)%s, &
+                 'THE ACCORD HOLDS IN THE TRUE REPOSITORY')
+    end if
+  end subroutine trial_offer_ground_and_accord
+
+  subroutine trial_offer_discipline()
+    type(cli_t) :: cli
+    type(run_result) :: before, after
+    integer :: code
+    ! An unfit message is refused before any inspection of the tree.
+    cli%message = 'bad "message"'
+    cli%dry_run = .true.
+    call set_muted(.true.)
+    call run_offer(cli, code)
+    call set_muted(.false.)
+    call check(code == 2, 'AN UNFIT MESSAGE IS A USAGE FAULT')
+    ! A dry run plans everything and performs nothing.
+    before = run_cmd('git rev-parse HEAD')
+    cli%message = 'A FIT MESSAGE FOR A DRY RUN.'
+    cli%dry_run = .true.
+    call set_muted(.true.)
+    call run_offer(cli, code)
+    call set_muted(.false.)
+    call check(code == 0, 'THE DRY RUN CONCLUDES IN PEACE')
+    after = run_cmd('git rev-parse HEAD')
+    call check(size(before%out) > 0 .and. size(after%out) > 0, &
+               'HEAD CAN BE NAMED TWICE')
+    if (size(before%out) > 0 .and. size(after%out) > 0) then
+      call check(before%out(1)%s == after%out(1)%s, &
+                 'THE DRY RUN SEALED NOTHING')
+    end if
+  end subroutine trial_offer_discipline
 
   subroutine trial_fixture_counting()
     type(string_t), allocatable :: lines(:), got(:)
@@ -290,5 +497,467 @@ contains
     call check(rr%launched .and. rr%exit_code /= 0, &
                'FAILURE IS REPORTED, NOT CONCEALED')
   end subroutine trial_run_discipline
+
+  subroutine trial_escaping()
+    call check_str(escape_html('a<b & "c" ''d''>e'), &
+                   'a&lt;b &amp; &quot;c&quot; &#39;d&#39;&gt;e', &
+                   'THE FIVE PERILOUS CHARACTERS ARE ENTOMBED')
+    call check_str(escape_html('plain text'), 'plain text', &
+                   'INNOCENT TEXT PASSES UNTOUCHED')
+    call check_str(escape_json('say "x" to \y'), 'say \"x\" to \\y', &
+                   'JSON QUOTES AND SLASHES ARE BOUND')
+  end subroutine trial_escaping
+
+  subroutine trial_dir_present()
+    call check(dir_present('src'), 'A STANDING DIRECTORY IS SEEN')
+    call check(.not. dir_present('no_such_crypt_xyz'), &
+               'AN ABSENT DIRECTORY IS NOT IMAGINED')
+  end subroutine trial_dir_present
+
+  subroutine trial_count_substr()
+    call check(count_substr('abcabcab', 'abc') == 2, 'COUNTING IS EXACT')
+    call check(count_substr('aaaa', 'aa') == 2, 'COUNTING DOES NOT OVERLAP')
+    call check(count_substr('abc', 'xyz') == 0, 'ABSENCE COUNTS AS ZERO')
+    call check(count_substr('abc', '') == 0, 'EMPTINESS IS NOT COUNTED')
+  end subroutine trial_count_substr
+
+  subroutine trial_routes_and_nav()
+    type(route_t), allocatable :: rs(:)
+    type(string_t), allocatable :: nav(:)
+    character(:), allocatable :: doc
+    integer :: i
+    rs = routes()
+    call check(size(rs) == 2, 'TWO ROUTES STAND IN THE REGISTRY')
+    if (size(rs) == 2) then
+      call check_str(rs(1)%file, 'index.html', 'THE NAVE IS THE INDEX')
+      call check_str(rs(2)%file, 'confessional.html', 'THE CONFESSIONAL HAS ITS DOOR')
+    end if
+    allocate (nav(0))
+    call append_nav(nav, 'nave')
+    doc = ''
+    do i = 1, size(nav)
+      doc = doc // nav(i)%s // achar(10)
+    end do
+    call check(count_substr(doc, 'aria-current="page"') == 1, &
+               'ONE PLACE IS HELD IN THE NAV')
+    call check(count_substr(doc, 'href="index.html" aria-current') == 1, &
+               'THE HELD PLACE IS THE ACTIVE PAGE')
+    call check(count_substr(doc, 'href="confessional.html"') == 1, &
+               'THE OTHER DOOR IS OFFERED')
+  end subroutine trial_routes_and_nav
+
+  subroutine trial_site_generation()
+    integer :: code
+    type(string_t), allocatable :: lines(:)
+    character(:), allocatable :: doc
+    integer :: i
+    call set_muted(.true.)
+    call run_generate(code)
+    call set_muted(.false.)
+    call check(code == 0, 'THE CATHEDRAL RISES ON COMMAND')
+    call check(exists('dist\index.html') .and. exists('dist\confessional.html'), &
+               'BOTH PAGES STAND')
+    call check(exists('dist\assets\tokens.css') .and. &
+               exists('dist\assets\cathedral.css') .and. &
+               exists('dist\assets\ornament.svg') .and. &
+               exists('dist\robots.txt') .and. exists('dist\sitemap.xml') .and. &
+               exists('dist\routes.json'), 'ALL SIX WORKS ARE LAID')
+    doc = slurp_file('dist\index.html')
+    call check(count_substr(doc, 'n &gt; 0') >= 1, &
+               'THE CODE EXHIBIT IS ESCAPED IN REAL CONTENT')
+    call check(count_substr(to_lower(doc), '<script') == 0, &
+               'NO SCRIPT TAINTS THE NAVE')
+    doc = slurp_file('dist\sitemap.xml')
+    call check(count_substr(doc, CANON_BASE_URL // '/index.html') == 1, &
+               'THE MAP KNOWS THE NAVE')
+    doc = slurp_file('dist\confessional.html')
+    call check(count_substr(doc, 'd2c9f0be63f28b7ecf136c1b9b81a7bd993132db') >= 1, &
+               'THE CONFESSIONAL DISPLAYS THE TRANSGRESSION''S COMMIT')
+    call check(count_substr(doc, 'The operational record') >= 1, &
+               'THE OPERATIONAL RECORD HAS ITS SECTION')
+    call set_muted(.true.)
+    call run_validate(code)
+    call set_muted(.false.)
+    call check(code == 0, 'THE SURVEYOR FINDS THE FABRIC SOUND')
+  end subroutine trial_site_generation
+
+  subroutine trial_determinism()
+    type(string_t), allocatable :: first(:), second(:)
+    character(24), parameter :: works(4) = [character(24) :: &
+      'dist\index.html', 'dist\confessional.html', &
+      'dist\assets\ornament.svg', 'dist\routes.json']
+    integer :: code, w, i
+    logical :: same
+    do w = 1, size(works)
+      call read_all_lines(trim(works(w)), first)
+      call set_muted(.true.)
+      call run_generate(code)
+      call set_muted(.false.)
+      call read_all_lines(trim(works(w)), second)
+      same = (size(first) == size(second)) .and. (size(first) > 0)
+      if (same) then
+        do i = 1, size(first)
+          if (first(i)%s /= second(i)%s) same = .false.
+        end do
+      end if
+      call check(same, 'REGENERATION IS DETERMINISTIC: ' // trim(works(w)))
+    end do
+  end subroutine trial_determinism
+
+  subroutine trial_validator_teeth()
+    integer :: code
+    call delete_file('dist\robots.txt')
+    call set_muted(.true.)
+    call run_validate(code)
+    call set_muted(.false.)
+    call check(code /= 0, 'THE SURVEYOR REFUSES A BREACHED FABRIC')
+    call set_muted(.true.)
+    call run_generate(code)
+    call run_validate(code)
+    call set_muted(.false.)
+    call check(code == 0, 'REGENERATION HEALS THE BREACH')
+  end subroutine trial_validator_teeth
+
+  ! ------------------------------------------------ the restitution trials
+
+  subroutine capture_root()
+    type(run_result) :: rr
+    rr = run_cmd('cd')
+    saved_root = rr%out(1)%s
+  end subroutine capture_root
+
+  !> Forge an isolated fixture repository with a local bare remote:
+  !> C0 (base) -> C_OFF (offense) -> C_NOW (present), pushed and synced.
+  !> The fixture's ledger records the offense per row_mode. Leaves the
+  !> working directory INSIDE the fixture; callers return to saved_root.
+  subroutine make_fixture(tag, row_mode, c0, c_off, c_now, fx, remote)
+    character(*), intent(in) :: tag
+    integer, intent(in) :: row_mode
+    character(:), allocatable, intent(out) :: c0, c_off, c_now, fx, remote
+    type(run_result) :: rr
+    type(string_t), allocatable :: lines(:)
+    logical :: ok
+    character(:), allocatable :: row_hash
+
+    fx = temp_root() // '\forty_rite_' // tag
+    remote = temp_root() // '\forty_rite_' // tag // '_remote.git'
+    call set_cwd(saved_root, ok)
+    rr = run_cmd('if exist ' // quote(fx // '\') // ' rmdir /s /q ' // quote(fx))
+    rr = run_cmd('if exist ' // quote(remote // '\') // ' rmdir /s /q ' // quote(remote))
+    rr = run_cmd('mkdir ' // quote(fx))
+    rr = run_cmd('git init -q --bare ' // quote(remote))
+    call set_cwd(fx, ok)
+    call check(ok, 'THE FIXTURE GROUND IS ENTERED (' // tag // ')')
+    rr = run_cmd('git init -q -b main')
+    rr = run_cmd('git config user.email trials@cathedral.local')
+    rr = run_cmd('git config user.name "The Trials"')
+    call write_one('a.txt', 'phase zero stone')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "C0"')
+    c0 = version_line('git rev-parse HEAD')
+    call write_one('a.txt', 'offense stone')
+    call write_one('b.txt', 'offense extra')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "OFFENSE"')
+    c_off = version_line('git rev-parse HEAD')
+
+    select case (row_mode)
+    case (ROW_OFFENDER); row_hash = c_off
+    case (ROW_GHOST);    row_hash = GHOST_HASH
+    case (ROW_ROOT);     row_hash = c0
+    case default;        row_hash = ''
+    end select
+    allocate (lines(0))
+    call push_string(lines, '## Current ledger')
+    call push_string(lines, '| File or component | Language | Executable lines | Purpose | Why | Removal |')
+    call push_string(lines, '|---|---:|---:|---|---|---|')
+    call push_string(lines, '| None | - | 0 | - | - | - |')
+    call push_string(lines, '')
+    call push_string(lines, '## Operational transgressions')
+    call push_string(lines, '| Date | Event | Commit | Executable non-Fortran lines introduced | Why | Remediation | Status |')
+    call push_string(lines, '|---|---|---|---:|---|---|---|')
+    if (row_mode /= ROW_NONE) then
+      call push_string(lines, '| 2026-07-18 | A manual offering | `' // row_hash // &
+                       '` | 0 | haste | forty offer | Historical. Disclosed. Not erasable. |')
+    end if
+    call push_string(lines, '')
+    call push_string(lines, '## Rules')
+    call push_string(lines, 'None here.')
+    call write_lines('HERESY_LEDGER.md', lines, ok)
+
+    call write_one('c.txt', 'the present stone')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "NOW"')
+    c_now = version_line('git rev-parse HEAD')
+    rr = run_cmd('git remote add origin ' // quote(remote))
+    rr = run_cmd('git push -q -u origin main')
+    call check(version_line('git rev-parse origin/main') == c_now, &
+               'THE FIXTURE REMOTE IS SYNCED (' // tag // ')')
+  end subroutine make_fixture
+
+  subroutine write_one(path, text)
+    character(*), intent(in) :: path, text
+    type(string_t), allocatable :: lines(:)
+    logical :: ok
+    allocate (lines(1))
+    lines(1)%s = text
+    call write_lines(path, lines, ok)
+  end subroutine write_one
+
+  function fixture_cli(yes, dry) result(c)
+    logical, intent(in) :: yes, dry
+    type(cli_t) :: c
+    c%assume_yes = yes
+    c%dry_run = dry
+    c%message = ''
+    c%rite = 'phase-1-manual-offering'
+  end function fixture_cli
+
+  function ledger_doc() result(doc)
+    character(:), allocatable :: doc
+    type(string_t), allocatable :: lines(:)
+    integer :: i
+    call read_all_lines('HERESY_LEDGER.md', lines)
+    doc = ''
+    do i = 1, size(lines)
+      doc = doc // lines(i)%s // achar(10)
+    end do
+  end function ledger_doc
+
+  subroutine trial_expiate_transform()
+    type(string_t), allocatable :: lines(:), out(:)
+    type(expiation_t) :: exp
+    type(transgression_t), allocatable :: trans(:)
+    logical :: changed, found, wellformed
+    character(40), parameter :: OFF = repeat('a', 40)
+    character(40), parameter :: WH = repeat('b', 40)
+    character(40), parameter :: RH = repeat('c', 40)
+    character(:), allocatable :: doc
+    integer :: i
+
+    allocate (lines(0))
+    call push_string(lines, '## Operational transgressions')
+    call push_string(lines, '| Date | Event | Commit | Executable non-Fortran lines introduced | Why | Remediation | Status |')
+    call push_string(lines, '|---|---|---|---:|---|---|---|')
+    call push_string(lines, '| 2026-07-18 | Manual push | `' // OFF // &
+                     '` | 0 | haste | forty offer | Historical. Disclosed. Not erasable. |')
+    call push_string(lines, '')
+    call push_string(lines, '## Rules')
+    call push_string(lines, 'Prose.')
+    call expiate_ledger_lines(lines, OFF, WH, RH, out, changed)
+    call check(changed, 'THE TRANSFORM REPORTS ITS WORK')
+    doc = ''
+    do i = 1, size(out)
+      doc = doc // out(i)%s // achar(10)
+    end do
+    call check(count_substr(doc, 'EXPIATED, NOT ERASED.') == 1, &
+               'THE STATUS TRANSITIONS EXACTLY ONCE')
+    call check(count_substr(doc, 'Historical. Disclosed. Not erasable.') == 0, &
+               'THE OLD STATUS DEPARTS')
+    call check(index(doc, '## Expiation record') > 0 .and. &
+               index(doc, '## Expiation record') < index(doc, '## Rules'), &
+               'THE RECORD IS INSCRIBED BEFORE THE RULES')
+    call ledger_transgressions(out, trans, wellformed)
+    call check(wellformed .and. size(trans) == 1, 'THE TRANSFORMED CHAPTER STILL PARSES')
+    call ledger_expiation(out, exp, found)
+    call check(found, 'THE EXPIATION RECORD PARSES')
+    if (found) then
+      call check_str(exp%withdrawal, WH, 'THE WITHDRAWAL IS RECORDED')
+      call check_str(exp%reoffering, RH, 'THE RE-OFFERING IS RECORDED')
+      call check(len(exp%means) > 0 .and. len(exp%history) > 0, &
+                 'MEANS AND HISTORY ARE STATED')
+    end if
+    call expiate_ledger_lines(out, OFF, WH, RH, lines, changed)
+    call check(.not. changed, 'AN EXPIATED LEDGER DOES NOT TRANSITION TWICE')
+  end subroutine trial_expiate_transform
+
+  subroutine trial_restitution_happy()
+    character(:), allocatable :: c0, coff, cnow, fx, remote
+    character(:), allocatable :: w, r, w2, r2, tree_c0, tree_now, doc
+    type(cli_t) :: c
+    type(run_result) :: rr
+    integer :: code, i
+    logical :: ok, clean
+
+    call make_fixture('happy', ROW_OFFENDER, c0, coff, cnow, fx, remote)
+    tree_c0 = version_line('git rev-parse ' // coff // '~1:')
+    tree_now = version_line('git rev-parse HEAD:')
+    c = fixture_cli(.true., .false.)
+    call set_scripted_confirm(SCRIPT_NONE)
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code == 0, 'THE FIXTURE RESTITUTION CONCLUDES')
+    call check(is_hash(w) .and. is_hash(r), 'BOTH EXPIATION COMMITS ARE NAMED')
+    call check(confirm_consult_count() == 1, 'ONE CONFIRMATION SERVED THE WHOLE RITE')
+    call check(version_line('git rev-parse HEAD') == r, 'HEAD STANDS AT THE RE-OFFERING')
+    call check(version_line('git rev-parse HEAD~1') == w, 'THE WITHDRAWAL PRECEDES IT')
+    call check(version_line('git rev-parse HEAD~2') == cnow, &
+               'THE PRESENT PRECEDES THE WITHDRAWAL: FORWARD ONLY')
+    call check(version_line('git rev-parse ' // w // ':') == tree_c0, &
+               'THE WITHDRAWN TREE IS THE PREDECESSOR TREE')
+    call check(version_line('git rev-parse ' // r // ':') == tree_now, &
+               'THE RE-OFFERED TREE IS THE CANONICAL TREE, BYTE FOR BYTE')
+    call check(version_line('git rev-parse origin/main') == r, &
+               'THE REMOTE RECEIVED THE RE-OFFERING')
+    call check(version_line('git rev-parse origin/main~1') == w, &
+               'THE REMOTE RECEIVED THE WITHDRAWAL')
+    ! After the rite, exactly one uncommitted change exists: the ledger's
+    ! new truth, awaiting its offering. The checked-out files themselves
+    ! never passed through the withdrawn state.
+    rr = run_cmd('git status --porcelain')
+    clean = .true.
+    do i = 1, size(rr%out)
+      if (len_trim(rr%out(i)%s) > 0) then
+        if (index(rr%out(i)%s, 'HERESY_LEDGER.md') == 0) clean = .false.
+      end if
+    end do
+    call check(clean, 'ONLY THE LEDGER AWAITS ITS OFFERING')
+    call check(exists('c.txt'), &
+               'THE TREE NEVER PASSED THROUGH THE WITHDRAWN STATE')
+    doc = ledger_doc()
+    call check(index(doc, 'EXPIATED, NOT ERASED.') > 0 .and. &
+               index(doc, w) > 0 .and. index(doc, r) > 0, &
+               'THE FIXTURE LEDGER RECORDS THE FULL RESTITUTION')
+    ! Seal the ledger as the real rite's concluding offering would, then
+    ! confirm an expiated stain atones no further.
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "RECORD"')
+    rr = run_cmd('git push -q')
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w2, r2, code)
+    call set_muted(.false.)
+    call check(code == 0 .and. len(w2) == 0, 'AN EXPIATED STAIN ATONES NO FURTHER')
+    call set_cwd(saved_root, ok)
+  end subroutine trial_restitution_happy
+
+  subroutine trial_restitution_dry_and_decline()
+    character(:), allocatable :: c0, coff, cnow, fx, remote, w, r, doc
+    type(cli_t) :: c
+    integer :: code
+    logical :: ok
+
+    call make_fixture('dry', ROW_OFFENDER, c0, coff, cnow, fx, remote)
+    c = fixture_cli(.false., .true.)
+    call set_scripted_confirm(SCRIPT_NONE)
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code == 0 .and. len(w) == 0, 'THE DRY RITE CONCLUDES IN PEACE')
+    call check(confirm_consult_count() == 0, 'THE DRY RITE ASKS NOTHING')
+    call check(version_line('git rev-parse HEAD') == cnow, 'THE DRY RITE MOVED NOTHING')
+    call check(version_line('git rev-parse origin/main') == cnow, &
+               'THE DRY RITE LIFTED NOTHING')
+    doc = ledger_doc()
+    call check(index(doc, 'Not erasable.') > 0 .and. index(doc, 'EXPIATED') == 0, &
+               'THE DRY RITE INSCRIBED NOTHING')
+
+    call set_scripted_confirm(SCRIPT_NO)
+    c = fixture_cli(.false., .false.)
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code == 5, 'A WITHHELD CONFIRMATION DEFERS THE RITE')
+    call check(confirm_consult_count() == 1, 'EXACTLY ONE CONFIRMATION WAS SOUGHT')
+    call check(version_line('git rev-parse HEAD') == cnow, 'DEFERRAL MOVED NOTHING')
+    call set_scripted_confirm(SCRIPT_NONE)
+    call set_cwd(saved_root, ok)
+  end subroutine trial_restitution_dry_and_decline
+
+  subroutine trial_restitution_refusals()
+    character(:), allocatable :: c0, coff, cnow, fx, remote, w, r
+    type(cli_t) :: c
+    type(run_result) :: rr
+    integer :: code
+    logical :: ok
+
+    ! The ledger does not record the offense.
+    call make_fixture('norec', ROW_NONE, c0, coff, cnow, fx, remote)
+    c = fixture_cli(.true., .false.)
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code /= 0, 'AN UNRECORDED OFFENSE CANNOT BE ATONED')
+    call check(version_line('git rev-parse HEAD') == cnow, 'AND NOTHING MOVED (NOREC)')
+
+    ! The recorded commit does not exist.
+    call make_fixture('ghost', ROW_GHOST, c0, coff, cnow, fx, remote)
+    call set_muted(.true.)
+    call perform_restitution(c, GHOST_HASH, w, r, code)
+    call set_muted(.false.)
+    call check(code /= 0, 'A GHOST OFFENSE CANNOT BE ATONED')
+    call check(version_line('git rev-parse HEAD') == cnow, 'AND NOTHING MOVED (GHOST)')
+
+    ! The tree is unclean.
+    call make_fixture('dirty', ROW_OFFENDER, c0, coff, cnow, fx, remote)
+    call write_one('uncommitted.txt', 'dust')
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code /= 0, 'AN UNCLEAN TREE REFUSES THE RITE')
+    call check(version_line('git rev-parse HEAD') == cnow, 'AND NOTHING MOVED (DIRTY)')
+
+    ! Local and remote are not of one accord.
+    call make_fixture('ahead', ROW_OFFENDER, c0, coff, cnow, fx, remote)
+    call write_one('d.txt', 'unpushed stone')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "AHEAD"')
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code /= 0, 'A BROKEN ACCORD REFUSES THE RITE')
+    call check(version_line('git rev-parse origin/main') == cnow, &
+               'AND THE REMOTE NEVER MOVED (AHEAD)')
+
+    ! The offense is the root commit: no predecessor tree exists.
+    call make_fixture('root', ROW_ROOT, c0, coff, cnow, fx, remote)
+    call set_scripted_confirm(SCRIPT_NONE)
+    call set_muted(.true.)
+    call perform_restitution(c, c0, w, r, code)
+    call set_muted(.false.)
+    call check(code /= 0, 'A ROOT OFFENSE HAS NO PREDECESSOR TO RESTORE')
+    call check(confirm_consult_count() == 0, &
+               'THE FAULT WAS FOUND BEFORE ANY CONFIRMATION')
+    call check(version_line('git rev-parse HEAD') == cnow, 'AND NOTHING MOVED (ROOT)')
+    call set_cwd(saved_root, ok)
+  end subroutine trial_restitution_refusals
+
+  subroutine trial_restitution_severed()
+    character(:), allocatable :: c0, coff, cnow, fx, remote, w, r, doc
+    type(cli_t) :: c
+    type(run_result) :: rr
+    integer :: code
+    logical :: ok
+
+    call make_fixture('sever', ROW_OFFENDER, c0, coff, cnow, fx, remote)
+    rr = run_cmd('rmdir /s /q ' // quote(remote))
+    c = fixture_cli(.true., .false.)
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code /= 0, 'A SEVERED REMOTE HALTS THE RITE AT THE LIFT')
+    doc = ledger_doc()
+    call check(index(doc, 'EXPIATED') == 0, &
+               'THE LEDGER WAITS WHEN THE LIFT FAILS')
+    call set_cwd(saved_root, ok)
+  end subroutine trial_restitution_severed
+
+  function exists(path) result(r)
+    character(*), intent(in) :: path
+    logical :: r
+    inquire (file=path, exist=r)
+  end function exists
+
+  function slurp_file(path) result(doc)
+    character(*), intent(in) :: path
+    character(:), allocatable :: doc
+    type(string_t), allocatable :: lines(:)
+    integer :: i
+    call read_all_lines(path, lines)
+    doc = ''
+    do i = 1, size(lines)
+      doc = doc // lines(i)%s // achar(10)
+    end do
+  end function slurp_file
 
 end program test_forty

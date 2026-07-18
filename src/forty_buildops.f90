@@ -8,7 +8,7 @@ module forty_buildops
   use forty_canon, only: EXIT_OK, EXIT_EXTERNAL, EXIT_DECLINED
   implicit none
   private
-  public :: run_build, run_test, run_clean
+  public :: run_build, run_test, run_clean, dir_present
 
 contains
 
@@ -76,27 +76,48 @@ contains
     integer, intent(out) :: exit_code
     type(run_result) :: rr, rsurv
     integer :: i
-    logical :: only_forty
+    logical :: only_forty, have_build, have_dist
 
-    rr = run_cmd('if exist build\ (echo PRESENT) else (echo ABSENT)')
-    if (size(rr%out) > 0) then
-      if (rr%out(1)%s == 'ABSENT') then
-        call say('THE YARD IS ALREADY SWEPT.')
-        exit_code = EXIT_OK
-        return
-      end if
+    have_build = dir_present('build')
+    have_dist = dir_present('dist')
+    if (.not. have_build .and. .not. have_dist) then
+      call say('THE YARD IS ALREADY SWEPT.')
+      exit_code = EXIT_OK
+      return
     end if
 
-    call say('CLEAN WILL REMOVE: build\  (COMPILED ARTIFACTS, STAMPS, AND')
-    call say('THE ORDAINED BINARY). NOTHING ELSE WILL BE TOUCHED.')
+    call say('CLEAN WILL REMOVE: build\ AND dist\  (COMPILED ARTIFACTS, STAMPS,')
+    call say('THE ORDAINED BINARY, AND THE GENERATED SITE). NOTHING ELSE.')
     if (.not. confirm('SWEEP THE YARD?', assume_yes)) then
       call say('THE YARD REMAINS.')
       exit_code = EXIT_DECLINED
       return
     end if
 
+    if (have_dist) then
+      rr = run_cmd('rmdir /s /q dist')
+      if (.not. rr%launched .or. rr%exit_code /= 0) then
+        call lament('THE PORCH RESISTS. rmdir EXIT: ' // int_to_str(rr%exit_code))
+        exit_code = EXIT_EXTERNAL
+        return
+      end if
+    end if
+    if (.not. have_build) then
+      call say('THE YARD IS SWEPT.')
+      exit_code = EXIT_OK
+      return
+    end if
+
     rr = run_cmd('rmdir /s /q build')
-    if (rr%launched .and. rr%exit_code == 0) then
+    if (.not. rr%launched) then
+      call lament('THE BROOM COULD NOT BE LIFTED.')
+      exit_code = EXIT_EXTERNAL
+      return
+    end if
+
+    ! rmdir /s /q may report success despite leaving locked files behind,
+    ! so the yard itself is inspected rather than trusting the broom.
+    if (.not. dir_present('build')) then
       call say('THE YARD IS SWEPT.')
       exit_code = EXIT_OK
       return
@@ -114,10 +135,22 @@ contains
       call say('(A RUNNING FORTY CANNOT REMOVE HIMSELF. SWEEP AGAIN FROM OUTSIDE.)')
       exit_code = EXIT_OK
     else
-      call lament('THE YARD RESISTS. rmdir EXIT: ' // int_to_str(rr%exit_code))
+      call lament('THE YARD RESISTS. SURVIVORS REMAIN BEYOND THE VERGER.')
       exit_code = EXIT_EXTERNAL
     end if
   end subroutine run_clean
+
+  !> The whole conditional is parenthesized so the capture redirect
+  !> applies to both branches; unwrapped, cmd binds a trailing redirect
+  !> to the else branch alone and the answer escapes to the console.
+  function dir_present(name) result(r)
+    character(*), intent(in) :: name
+    logical :: r
+    type(run_result) :: rr
+    r = .false.
+    rr = run_cmd('(if exist ' // name // '\ (echo PRESENT) else (echo ABSENT))')
+    if (size(rr%out) > 0) r = (rr%out(1)%s == 'PRESENT')
+  end function dir_present
 
   function timestamp() result(ts)
     character(:), allocatable :: ts
