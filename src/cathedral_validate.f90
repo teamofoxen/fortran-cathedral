@@ -44,6 +44,7 @@ contains
     call check(file_exists('dist\robots.txt'), 'THE CRAWLERS ARE ADDRESSED')
     call check(file_exists('dist\sitemap.xml'), 'THE MAP IS DRAWN')
     call check(file_exists('dist\routes.json'), 'THE MANIFEST IS KEPT')
+    call check(file_exists('dist\.nojekyll'), 'THE PORCH REFUSES JEKYLL, POLITELY')
 
     do i = 1, size(rs)
       call check(file_exists('dist\' // rs(i)%file), &

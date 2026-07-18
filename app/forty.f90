@@ -17,6 +17,7 @@ program forty
   use forty_offer, only: run_offer
   use forty_atone, only: run_atone
   use forty_audit, only: run_audit
+  use forty_deploy, only: run_deploy
   implicit none
 
   type(string_t), allocatable :: argv(:)
@@ -43,7 +44,8 @@ program forty
   ! from its root. The doctor and the help desk see visitors anywhere.
   select case (cli%command)
   case (CMD_STATUS, CMD_BUILD, CMD_TEST, CMD_CONFESS, CMD_CLEAN, CMD_GITHUB, &
-        CMD_GENERATE, CMD_VALIDATE, CMD_OPEN, CMD_OFFER, CMD_ATONE, CMD_AUDIT)
+        CMD_GENERATE, CMD_VALIDATE, CMD_OPEN, CMD_OFFER, CMD_ATONE, CMD_AUDIT, &
+        CMD_DEPLOY)
     if (.not. in_cathedral_root()) then
       call lament('FORTY SERVES ONE CATHEDRAL. INVOKE HIM FROM ITS ROOT')
       call say('(THE DIRECTORY HOLDING CLAUDE.md, FORTY.md, AND fpm.toml).')
@@ -67,6 +69,7 @@ program forty
   case (CMD_OFFER);    call run_offer(cli, code)
   case (CMD_ATONE);    call run_atone(cli, code)
   case (CMD_AUDIT);    call run_audit(cli, code)
+  case (CMD_DEPLOY);   call run_deploy(cli, code)
   case (CMD_GITHUB)
     select case (cli%subcommand)
     case (SUB_STATUS);  call github_status(code)
@@ -97,6 +100,8 @@ contains
     call say('  offer               COMMIT AND PUSH THROUGH FORTY. ONE CONFIRMATION.')
     call say('  atone <rite>        THE RITE OF RESTITUTION. FORWARD-ONLY. NO ERASURE.')
     call say('  audit provenance    READ THE CATHEDRAL''S OWN HISTORY. REPORT UNDER build\audit\.')
+    call say('  deploy              OPEN THE DOORS: BUILD, PROVE, SEAL dist\ TO gh-pages,')
+    call say('                      APPOINT GITHUB PAGES, AND VERIFY THE PUBLIC FABRIC.')
     call say('  clean               SWEEP build\ AND dist\. ASKS FIRST.')
     call say('  github status       REPORT THE GATEHOUSE.')
     call say('  github connect      THE CONSECRATION RITE. ONE CONFIRMATION.')

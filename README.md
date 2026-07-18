@@ -131,6 +131,15 @@ from higher ecosystems, and a glossary — ten citations cross-checked
 against `content/book-of-blas/SOURCES.md`, and a validator that
 recomputes every displayed number and refuses the page if one disagrees.
 
+Phase 5 opened the doors: `forty deploy` walks the full production path
+(build, generate, validate, test, confess), builds the deployable tree
+from `dist\` alone through Git plumbing, seals and pushes it to
+`gh-pages` without force, appoints GitHub Pages through the gh CLI, and
+then fetches every route from the public address to verify the live
+fabric — one confirmation, dry-run support, idempotent repeats, honest
+reporting while Pages is still publishing. The Cathedral is public at
+https://teamofoxen.github.io/fortran-cathedral/.
+
 Further wings — the Hall of Deprecated Syntax, the Saints of Numerical
 Computing — await their phases.
 

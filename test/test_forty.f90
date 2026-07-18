@@ -59,6 +59,9 @@ program test_forty
   use cathedral_blas, only: axpy_ref, gemv_ref, gemm_ref, fmt_num, &
                             exhibit_axpy, exhibit_gemv, exhibit_gemm, blas_cites
   use cathedral_validate, only: extract_hrefs
+  use forty_deploy, only: deploy_preflight, build_deploy_tree, deploy_parent, &
+                          make_deploy_commit, push_deploy, deploy_needed, &
+                          tree_manifest, gate_production, parse_pages_response
   use forty_audit, only: finding_t, add_finding, tree_paths, scan_tracked_html, &
                          scan_template_suspects, scan_tree_heresy, commit_exists, &
                          signature_module, residue_change, tree_has_path, &
@@ -122,6 +125,8 @@ program test_forty
   call trial_restitution_refusals()
   call trial_restitution_severed()
   call trial_audit_capabilities()
+  call trial_deploy_engine()
+  call trial_deploy_planning()
 
   call summary()
   if (n_fail > 0) call exit(1)
@@ -596,7 +601,8 @@ contains
                exists('dist\assets\cathedral.css') .and. &
                exists('dist\assets\ornament.svg') .and. &
                exists('dist\robots.txt') .and. exists('dist\sitemap.xml') .and. &
-               exists('dist\routes.json'), 'ALL SIX WORKS ARE LAID')
+               exists('dist\routes.json') .and. exists('dist\.nojekyll'), &
+               'ALL SEVEN WORKS ARE LAID')
     doc = slurp_file('dist\index.html')
     call check(count_substr(doc, 'n &gt; 0') >= 1, &
                'THE CODE EXHIBIT IS ESCAPED IN REAL CONTENT')
@@ -886,6 +892,146 @@ contains
     call set_muted(.false.)
     call check(code == 0, 'AND IS FOUND SOUND, REPRODUCED BY FORTRAN ALONE')
   end subroutine trial_rebuild_from_nothing
+
+  subroutine trial_deploy_engine()
+    character(:), allocatable :: fx, remote, tree1, tree2, tree3, tree4
+    character(:), allocatable :: c1, c2, c3, why
+    type(string_t), allocatable :: names(:), glines(:)
+    type(run_result) :: rr
+    logical :: ok, ready, has_parent
+    character(:), allocatable :: parent
+    integer :: i
+
+    fx = temp_root() // '\forty_deploy_fx'
+    remote = temp_root() // '\forty_deploy_fx_remote.git'
+    call set_cwd(saved_root, ok)
+    rr = run_cmd('if exist ' // quote(fx // '\') // ' rmdir /s /q ' // quote(fx))
+    rr = run_cmd('if exist ' // quote(remote // '\') // ' rmdir /s /q ' // quote(remote))
+    rr = run_cmd('mkdir ' // quote(fx))
+    rr = run_cmd('git init -q --bare ' // quote(remote))
+    call set_cwd(fx, ok)
+    call check(ok, 'THE DEPLOY FIXTURE GROUND IS ENTERED')
+    rr = run_cmd('git init -q -b main')
+    rr = run_cmd('git config user.email trials@cathedral.local')
+    rr = run_cmd('git config user.name "The Trials"')
+    allocate (glines(3))
+    glines(1)%s = 'dist/'
+    glines(2)%s = 'build/'
+    glines(3)%s = '*.mod'
+    call write_lines('.gitignore', glines, ok)
+    rr = run_cmd('mkdir src')
+    call write_one('src\junk.f90', 'program junk')
+    call write_one('a.md', 'prose')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "BASE"')
+    rr = run_cmd('git remote add origin ' // quote(remote))
+    rr = run_cmd('git push -q -u origin main')
+    rr = run_cmd('mkdir dist')
+    rr = run_cmd('mkdir dist\assets')
+    call write_one('dist\index.html', '<p>nave</p>')
+    call write_one('dist\blas.html', '<p>blas</p>')
+    call write_one('dist\assets\cathedral.css', 'body{}')
+    rr = run_cmd('mkdir build')
+    call write_one('build\junk.o', 'not really an object')
+    call write_one('state.mod', 'module droppings')
+
+    call deploy_preflight(ready, why)
+    call check(ready, 'THE DEPLOY GROUND IS FIT WHEN CLEAN AND SYNCED')
+
+    call build_deploy_tree(tree1, ok)
+    call check(ok, 'THE ARK IS BUILT FROM THE PORCH')
+    call tree_manifest(tree1, names, ok)
+    call check(ok .and. size(names) == 3, 'THE ARK CARRIES EXACTLY THE PORCH')
+    if (size(names) == 3) then
+      call check_str(names(1)%s, 'assets/cathedral.css', 'THE STYLESHEET BOARDS')
+      call check_str(names(2)%s, 'blas.html', 'THE BOOK BOARDS')
+      call check_str(names(3)%s, 'index.html', 'THE NAVE BOARDS')
+    end if
+    ok = .true.
+    do i = 1, size(names)
+      if (index(names(i)%s, 'junk') > 0 .or. index(names(i)%s, '.mod') > 0) ok = .false.
+    end do
+    call check(ok, 'NO SOURCE, YARD, OR DROPPING BOARDS THE ARK')
+
+    call deploy_parent(parent, has_parent)
+    call check(.not. has_parent, 'NO PUBLIC LINE EXISTS BEFORE THE FIRST OPENING')
+    call check(version_line('git rev-parse refs/remotes/origin/gh-pages') == '', &
+               'THE TREE ALONE MOVED NO BRANCH')
+
+    call make_deploy_commit(tree1, '', .false., 'abcd1234', c1, ok)
+    call check(ok, 'THE FIRST SEAL IS FORMED')
+    call check(version_line('git rev-parse ' // c1 // ':') == tree1, &
+               'THE SEAL CARRIES THE ARK')
+    call check(version_line('git rev-parse ' // c1 // '~1') == '', &
+               'THE FIRST OPENING HAS NO ANCESTOR')
+    call push_deploy(c1, ok)
+    call check(ok, 'THE FIRST LIFT SUCCEEDS')
+    call check(version_line('git rev-parse refs/remotes/origin/gh-pages') == c1, &
+               'THE PUBLIC LINE IS BORN AT THE SEAL')
+
+    call write_one('dist\index.html', '<p>renewed nave</p>')
+    call build_deploy_tree(tree2, ok)
+    call check(ok .and. tree2 /= tree1, 'A CHANGED PORCH YIELDS A CHANGED ARK')
+    call check(deploy_needed(tree2, c1), 'A CHANGED ARK NEEDS A NEW OPENING')
+    call make_deploy_commit(tree2, c1, .true., 'abcd1234', c2, ok)
+    call check(ok .and. version_line('git rev-parse ' // c2 // '~1') == c1, &
+               'THE SECOND SEAL FOLLOWS THE FIRST')
+    call push_deploy(c2, ok)
+    call check(ok .and. version_line('git rev-parse refs/remotes/origin/gh-pages') == c2, &
+               'THE PUBLIC LINE ADVANCES WITHOUT FORCE')
+
+    call build_deploy_tree(tree3, ok)
+    call check(ok .and. tree3 == tree2, 'AN UNCHANGED PORCH REBUILDS THE SAME ARK')
+    call check(.not. deploy_needed(tree3, c2), &
+               'AN UNCHANGED CATHEDRAL NEEDS NO SECOND OPENING')
+
+    call write_one('src\dirty.f90', 'program dirty')
+    call deploy_preflight(ready, why)
+    call check(.not. ready .and. index(why, 'UNCLEAN') > 0, &
+               'AN UNCLEAN TREE REFUSES THE DOORS')
+    rr = run_cmd('del src\dirty.f90')
+    call write_one('b.md', 'more prose')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "AHEAD"')
+    call deploy_preflight(ready, why)
+    call check(.not. ready .and. index(why, 'ACCORD') > 0, &
+               'AN UNSYNCED main REFUSES THE DOORS')
+    rr = run_cmd('git push -q')
+    call deploy_preflight(ready, why)
+    call check(ready, 'THE GROUND IS FIT AGAIN ONCE RECONCILED')
+
+    rr = run_cmd('rmdir /s /q ' // quote(remote))
+    call write_one('dist\blas.html', '<p>renewed blas</p>')
+    call build_deploy_tree(tree4, ok)
+    call make_deploy_commit(tree4, c2, .true., 'abcd1234', c3, ok)
+    call check(ok, 'A SEAL CAN FORM EVEN WHEN THE REMOTE IS GONE')
+    call push_deploy(c3, ok)
+    call check(.not. ok, 'A SEVERED REMOTE FAILS THE LIFT HONESTLY')
+
+    call set_cwd(saved_root, ok)
+  end subroutine trial_deploy_engine
+
+  subroutine trial_deploy_planning()
+    character(:), allocatable :: url, branch, doc
+    logical :: okj
+    call check(gate_production([0, 0, 1, 0, 0]) == 'validate', &
+               'THE GATE NAMES THE REFUSING STAGE')
+    call check(gate_production([1, 0, 0, 0, 0]) == 'build', &
+               'THE GATE NAMES THE FIRST REFUSAL')
+    call check(len(gate_production([0, 0, 0, 0, 0])) == 0, &
+               'A CLEAN PATH PASSES THE GATE')
+    doc = '{"url":"https://api.github.com/repos/x/y/pages",' // &
+          '"status":"built",' // &
+          '"html_url":"https://teamofoxen.github.io/fortran-cathedral/",' // &
+          '"source":{"branch":"gh-pages","path":"/"}}'
+    call parse_pages_response(doc, url, branch, okj)
+    call check(okj, 'THE PAGES RESPONSE IS PARSED')
+    call check_str(url, 'https://teamofoxen.github.io/fortran-cathedral/', &
+                   'THE PUBLIC ADDRESS IS READ')
+    call check_str(branch, 'gh-pages', 'THE SERVING BRANCH IS READ')
+    call parse_pages_response('{"nope": 1}', url, branch, okj)
+    call check(.not. okj, 'A STRANGE RESPONSE IS NOT PRETENDED UNDERSTOOD')
+  end subroutine trial_deploy_planning
 
   ! ------------------------------------------------ the restitution trials
 

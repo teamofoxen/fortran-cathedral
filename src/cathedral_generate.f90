@@ -65,9 +65,14 @@ contains
     if (.not. emit('dist\sitemap.xml', work)) return
     call routes_json_lines(work, facts%generator)
     if (.not. emit('dist\routes.json', work)) return
+    ! An empty .nojekyll asks GitHub Pages to serve the porch as laid,
+    ! with no Jekyll pass. The emptiest file Forty has ever inscribed.
+    if (allocated(work)) deallocate (work)
+    allocate (work(0))
+    if (.not. emit('dist\.nojekyll', work)) return
 
     call say('THE CATHEDRAL IS RAISED: ' // int_to_str(size(rs)) // &
-             ' PAGES, 6 WORKS, 0 LINES OF JAVASCRIPT.')
+             ' PAGES, 7 WORKS, 0 LINES OF JAVASCRIPT.')
     exit_code = EXIT_OK
   end subroutine run_generate
 
