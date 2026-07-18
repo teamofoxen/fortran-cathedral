@@ -44,7 +44,20 @@ public Confessional, and never alter the executable-heresy line count.
 
 | Date | Event | Commit | Executable non-Fortran lines introduced | Why it violated the Cathedral | Remediation | Status |
 |---|---|---|---:|---|---|---|
-| 2026-07-18 | Phase 1 commit and push performed through direct Git commands rather than Forty | `d2c9f0be63f28b7ecf136c1b9b81a7bd993132db` | 0 | Forty did not yet own routine offerings, but the operation proceeded manually instead of pausing to ordain that capability | Phase 1.1 introduces `forty offer`; all future routine commits and pushes pass through Forty | Historical. Disclosed. Not erasable. |
+| 2026-07-18 | Phase 1 commit and push performed through direct Git commands rather than Forty | `d2c9f0be63f28b7ecf136c1b9b81a7bd993132db` | 0 | Forty did not yet own routine offerings, but the operation proceeded manually instead of pausing to ordain that capability | Phase 1.1 introduces `forty offer`; all future routine commits and pushes pass through Forty | EXPIATED, NOT ERASED. |
+
+## Expiation record
+
+The stain of the manual Phase 1 offering has been expiated by restitution.
+Nothing was erased, amended, squashed, or rewritten; the rite is forward-only.
+
+| Field | Value |
+|---|---|
+| Expiated transgression | `d2c9f0be63f28b7ecf136c1b9b81a7bd993132db` |
+| Withdrawal commit | `c0a39214a655b4d1530e53dfecb4998c01527806` |
+| Canonical re-offering commit | `510285b6736fe9c7fa021a3a715b0f3468cb6ce5` |
+| Means | Forward-only withdrawal and re-offering formed with git commit-tree; main advanced atomically with git update-ref and pushed without force |
+| History | The original transgression remains permanently in history |
 
 ## Rules
 
