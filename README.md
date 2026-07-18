@@ -115,6 +115,15 @@ Every verse compiles. The validator now also enforces the generation
 doctrine: no handwritten HTML in the source tree, every page named in the
 Fortran route registry, every page bearing the verger's generation mark.
 
+Phase 3 added `forty audit provenance` — Forty reads his own history
+through fixed read-only Git commands, classifies every conclusion
+(PROVEN / STRONGLY SUPPORTED / UNPROVEN / HERESY DETECTED), rebuilds the
+Phase 1 commit in a clean worktree to prove present-day reproduction, and
+files the record under `build\audit\`. It also opened the second wing:
+**Why It Still Stands** — five sourced pillars, myth-versus-reality, and
+fourteen citations cross-checked by the validator against
+`content/why-it-still-stands/SOURCES.md`.
+
 Further wings — the Book of BLAS, the Hall of Deprecated Syntax, the
 Saints of Numerical Computing — await their phases.
 

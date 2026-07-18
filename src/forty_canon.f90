@@ -5,9 +5,10 @@ module forty_canon
   private
   public :: FORTY_VERSION, CANON_REPO_NAME, CANON_DESCRIPTION, CANON_BASE_URL
   public :: CANON_COMMIT_MSG, CANON_COMMIT_TRAILER, CANON_OFFENDING_COMMIT
+  public :: CANON_RESIDUE_ADD, CANON_RESIDUE_FIX
   public :: EXIT_OK, EXIT_FAIL, EXIT_USAGE, EXIT_ENV, EXIT_EXTERNAL, EXIT_DECLINED
 
-  character(*), parameter :: FORTY_VERSION = '0.3.0'
+  character(*), parameter :: FORTY_VERSION = '0.4.0'
 
   !> The intended canonical home of the generated site. Deployment is a
   !> later phase; the sitemap and robots.txt speak of this address in
@@ -26,6 +27,13 @@ module forty_canon
   !> offering. This is that commit. It is not erased; it is atoned for.
   character(*), parameter :: CANON_OFFENDING_COMMIT = &
     'd2c9f0be63f28b7ecf136c1b9b81a7bd993132db'
+
+  !> The compiler-residue incident: the offering that carried state.mod
+  !> into the canon, and the offering that swept it out again.
+  character(*), parameter :: CANON_RESIDUE_ADD = &
+    '8d4ef023f465ff1bcb9390eaa42059532458a14a'
+  character(*), parameter :: CANON_RESIDUE_FIX = &
+    'f83193574ca18fcf470b909e9655e6837aa22408'
 
   integer, parameter :: EXIT_OK       = 0  ! the rite concluded
   integer, parameter :: EXIT_FAIL     = 1  ! general failure or wrong ground

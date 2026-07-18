@@ -12,7 +12,7 @@ module cathedral_testaments
   use cathedral_highlight, only: highlight_line
   implicit none
   private
-  public :: verse_t, verses, testaments_body, TESTAMENTS_DIR
+  public :: verse_t, verses, testaments_body, TESTAMENTS_DIR, standards_timeline
 
   character(*), parameter :: TESTAMENTS_DIR = 'content\testaments'
 
@@ -130,17 +130,7 @@ contains
     call para(body, 'Nine revisions, one unbroken line. Years give the ' // &
       'publication of each standard; the first entry is the language&#39;s ' // &
       'delivery by IBM.')
-    call push_string(body, '<ol class="timeline">')
-    call timeline_item(body, 'FORTRAN', '1957')
-    call timeline_item(body, 'FORTRAN 66', '1966')
-    call timeline_item(body, 'FORTRAN 77', '1978')
-    call timeline_item(body, 'Fortran 90', '1991')
-    call timeline_item(body, 'Fortran 95', '1997')
-    call timeline_item(body, 'Fortran 2003', '2004')
-    call timeline_item(body, 'Fortran 2008', '2010')
-    call timeline_item(body, 'Fortran 2018', '2018')
-    call timeline_item(body, 'Fortran 2023', '2023')
-    call push_string(body, '</ol>')
+    call standards_timeline(body)
     call para(body, 'The standard retires its past with care: features are ' // &
       'first declared <em>obsolescent</em> (still standard, discouraged), ' // &
       'and only rarely <em>deleted</em>. Compilers, serving decades of ' // &
@@ -174,6 +164,22 @@ contains
     call push_string(body, '</figure>')
     ok = .true.
   end function emit_exhibit
+
+  !> The nine-revision line, shared by every wing that charts it.
+  subroutine standards_timeline(body)
+    type(string_t), allocatable, intent(inout) :: body(:)
+    call push_string(body, '<ol class="timeline">')
+    call timeline_item(body, 'FORTRAN', '1957')
+    call timeline_item(body, 'FORTRAN 66', '1966')
+    call timeline_item(body, 'FORTRAN 77', '1978')
+    call timeline_item(body, 'Fortran 90', '1991')
+    call timeline_item(body, 'Fortran 95', '1997')
+    call timeline_item(body, 'Fortran 2003', '2004')
+    call timeline_item(body, 'Fortran 2008', '2010')
+    call timeline_item(body, 'Fortran 2018', '2018')
+    call timeline_item(body, 'Fortran 2023', '2023')
+    call push_string(body, '</ol>')
+  end subroutine standards_timeline
 
   subroutine timeline_item(body, name, year)
     type(string_t), allocatable, intent(inout) :: body(:)

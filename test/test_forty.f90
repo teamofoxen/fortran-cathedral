@@ -54,6 +54,13 @@ program test_forty
                            CLASS_FORTRAN, CLASS_DECLARATIVE, CLASS_HERESY, CLASS_OTHER
   use cathedral_highlight, only: highlight_line
   use cathedral_testaments, only: verse_t, verses
+  use cathedral_why, only: cite_t, cites
+  use cathedral_validate, only: extract_hrefs
+  use forty_audit, only: finding_t, add_finding, tree_paths, scan_tracked_html, &
+                         scan_template_suspects, scan_tree_heresy, commit_exists, &
+                         signature_module, residue_change, tree_has_path, &
+                         historical_execution_finding, render_report, &
+                         V_PROVEN, V_HERESY
   use forty_offer, only: build_offer_plan, check_offer_ground, &
                          categorize_porcelain, offering_acceptable, &
                          porcelain_path, run_offer
@@ -95,6 +102,7 @@ program test_forty
   call trial_highlighter()
   call trial_testaments()
   call trial_html_purity()
+  call trial_why_wing()
   call trial_rebuild_from_nothing()
   call trial_transgressions()
   call trial_commit_messages()
@@ -108,6 +116,7 @@ program test_forty
   call trial_restitution_dry_and_decline()
   call trial_restitution_refusals()
   call trial_restitution_severed()
+  call trial_audit_capabilities()
 
   call summary()
   if (n_fail > 0) call exit(1)
@@ -545,11 +554,12 @@ contains
     character(:), allocatable :: doc
     integer :: i
     rs = routes()
-    call check(size(rs) == 3, 'THREE ROUTES STAND IN THE REGISTRY')
-    if (size(rs) == 3) then
+    call check(size(rs) == 4, 'FOUR ROUTES STAND IN THE REGISTRY')
+    if (size(rs) == 4) then
       call check_str(rs(1)%file, 'index.html', 'THE NAVE IS THE INDEX')
-      call check_str(rs(2)%file, 'testaments.html', 'THE TESTAMENTS HAVE THEIR DOOR')
-      call check_str(rs(3)%file, 'confessional.html', 'THE CONFESSIONAL HAS ITS DOOR')
+      call check_str(rs(2)%file, 'why-it-still-stands.html', 'WHY HAS ITS DOOR')
+      call check_str(rs(3)%file, 'testaments.html', 'THE TESTAMENTS HAVE THEIR DOOR')
+      call check_str(rs(4)%file, 'confessional.html', 'THE CONFESSIONAL HAS ITS DOOR')
     end if
     allocate (nav(0))
     call append_nav(nav, 'nave')
@@ -602,9 +612,9 @@ contains
 
   subroutine trial_determinism()
     type(string_t), allocatable :: first(:), second(:)
-    character(24), parameter :: works(5) = [character(24) :: &
+    character(32), parameter :: works(6) = [character(32) :: &
       'dist\index.html', 'dist\confessional.html', &
-      'dist\testaments.html', &
+      'dist\testaments.html', 'dist\why-it-still-stands.html', &
       'dist\assets\ornament.svg', 'dist\routes.json']
     integer :: code, w, i
     logical :: same
@@ -721,6 +731,56 @@ contains
     end do
     call check(pure_tree, 'NO HANDWRITTEN HTML STANDS IN THE SOURCE TREE')
   end subroutine trial_html_purity
+
+  subroutine trial_why_wing()
+    type(cite_t), allocatable :: cs(:)
+    type(string_t), allocatable :: urls(:), srclines(:)
+    character(:), allocatable :: page, sources, u
+    integer :: i, j
+    logical :: ok_all
+
+    cs = cites()
+    call check(size(cs) == 14, 'FOURTEEN SOURCES STAND IN THE CITATION REGISTRY')
+    page = slurp_file('dist\why-it-still-stands.html')
+    call check(count_substr(page, 'id="why-arrays"') == 1 .and. &
+               count_substr(page, 'id="why-compilers"') == 1 .and. &
+               count_substr(page, 'id="why-validated"') == 1 .and. &
+               count_substr(page, 'id="why-libraries"') == 1 .and. &
+               count_substr(page, 'id="why-institutions"') == 1, &
+               'ALL FIVE PILLARS STAND ON THE PAGE')
+    call check(count_substr(page, 'id="why-myths"') == 1, 'THE MYTHS ARE ANSWERED')
+    call check(count_substr(page, 'class="timeline"') == 1, &
+               'THE UNBROKEN LINE IS CHARTED ON THE WHY WING')
+    do i = 1, size(cs)
+      call check(count_substr(page, 'id="src-' // int_to_str(i) // '"') == 1, &
+                 'SOURCE ' // int_to_str(i) // ' IS RENDERED WITH ITS ANCHOR')
+    end do
+    ! Every #src reference resolves to a rendered anchor.
+    call extract_hrefs(page, urls)
+    ok_all = .true.
+    do j = 1, size(urls)
+      u = urls(j)%s
+      if (len(u) < 6) cycle
+      if (u(1:5) /= '#src-') cycle
+      if (count_substr(page, 'id="' // u(2:) // '"') /= 1) ok_all = .false.
+    end do
+    call check(ok_all, 'EVERY CITATION MARK FINDS ITS SOURCE')
+    ! Every external link is recorded in the declarative source record.
+    call read_all_lines('content\why-it-still-stands\SOURCES.md', srclines)
+    sources = ''
+    do i = 1, size(srclines)
+      sources = sources // srclines(i)%s // achar(10)
+    end do
+    ok_all = .true.
+    do j = 1, size(urls)
+      u = urls(j)%s
+      if (index(u, '://') == 0) cycle
+      if (count_substr(sources, u) < 1) ok_all = .false.
+    end do
+    call check(ok_all, 'EVERY EXTERNAL LINK STANDS IN SOURCES.md')
+    call check(count_substr(page, 'href="testaments.html"') >= 1, &
+               'THE WHY WING POINTS FORWARD TO THE TESTAMENTS')
+  end subroutine trial_why_wing
 
   subroutine trial_rebuild_from_nothing()
     type(run_result) :: rr
@@ -1060,6 +1120,122 @@ contains
                'THE LEDGER WAITS WHEN THE LIFT FAILS')
     call set_cwd(saved_root, ok)
   end subroutine trial_restitution_severed
+
+  subroutine trial_audit_capabilities()
+    character(:), allocatable :: fx, c1, c2, c3, modpath
+    type(string_t), allocatable :: paths(:), sus(:), yard(:), heresy(:)
+    type(string_t), allocatable :: cands(:), report(:)
+    type(finding_t), allocatable :: fs(:)
+    type(finding_t) :: hf
+    type(run_result) :: rr
+    character(1) :: action
+    logical :: ok, found
+    integer :: i
+
+    ! An isolated fixture with a pure commit, a defiled commit, and a
+    ! cleansing commit. No remote exists; nothing can be touched.
+    fx = temp_root() // '\forty_audit_fx'
+    call set_cwd(saved_root, ok)
+    rr = run_cmd('if exist ' // quote(fx // '\') // ' rmdir /s /q ' // quote(fx))
+    rr = run_cmd('mkdir ' // quote(fx))
+    call set_cwd(fx, ok)
+    call check(ok, 'THE AUDIT FIXTURE GROUND IS ENTERED')
+    rr = run_cmd('git init -q -b main')
+    rr = run_cmd('git config user.email trials@cathedral.local')
+    rr = run_cmd('git config user.name "The Trials"')
+    rr = run_cmd('mkdir src')
+    call write_one('src\gen.f90', '! <!doctype html> and User-agent: * live here')
+    call write_one('notes.md', 'prose only')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "C1 PURE"')
+    c1 = version_line('git rev-parse HEAD')
+    call write_one('page.html', '<p>handwritten</p>')
+    rr = run_cmd('mkdir dist')
+    call write_one('dist\out.html', '<p>tracked output</p>')
+    rr = run_cmd('mkdir templates')
+    call write_one('templates\x.tpl', 'a template')
+    call write_one('junk.mod', 'module droppings')
+    call write_one('script.py', 'print(1)')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "C2 DEFILED"')
+    c2 = version_line('git rev-parse HEAD')
+    rr = run_cmd('del junk.mod')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "C3 CLEANSED"')
+    c3 = version_line('git rev-parse HEAD')
+
+    call tree_paths(c1, paths, ok)
+    call check(ok .and. size(paths) == 2, 'THE PURE TREE IS READ')
+    call scan_tracked_html(paths, sus, yard)
+    call check(size(sus) == 0 .and. size(yard) == 0, 'A PURE TREE SHOWS NO HTML')
+    call scan_template_suspects(paths, sus)
+    call check(size(sus) == 0, 'A PURE TREE SHOWS NO TEMPLATING MACHINERY')
+    call scan_tree_heresy(paths, heresy)
+    call check(size(heresy) == 0, 'A PURE TREE SHOWS NO EXECUTABLE HERESY')
+
+    call tree_paths(c2, paths, ok)
+    call scan_tracked_html(paths, sus, yard)
+    call check(size(sus) == 1 .and. size(yard) == 1, &
+               'HANDWRITTEN HTML AND TRACKED OUTPUT ARE TOLD APART')
+    if (size(sus) == 1) then
+      call check_str(sus(1)%s, 'page.html', 'THE HANDWRITTEN SUSPECT IS NAMED')
+    end if
+    call scan_template_suspects(paths, sus)
+    found = .false.
+    do i = 1, size(sus)
+      if (index(sus(i)%s, 'x.tpl') > 0) found = .true.
+    end do
+    call check(found, 'THE TEMPLATE IS DETECTED')
+    call scan_tree_heresy(paths, heresy)
+    found = .false.
+    do i = 1, size(heresy)
+      if (index(heresy(i)%s, 'script.py') > 0) found = .true.
+    end do
+    call check(found, 'THE EXECUTABLE HERESY IS DETECTED')
+
+    allocate (cands(1))
+    cands(1)%s = 'src/gen.f90'
+    modpath = signature_module(c1, cands, '<!doctype html>')
+    call check_str(modpath, 'src/gen.f90', 'THE GENERATOR SIGNATURE IS ATTRIBUTED')
+    modpath = signature_module(c1, cands, 'no_such_sig_xyz')
+    call check(len(modpath) == 0, 'AN ABSENT SIGNATURE ATTRIBUTES NOTHING')
+
+    call check(.not. commit_exists(GHOST_HASH), &
+               'A MISSING HISTORICAL COMMIT IS REPORTED MISSING')
+
+    call residue_change(c2, 'junk.mod', action, found)
+    call check(found .and. action == 'A', 'THE RESIDUE''S ARRIVAL IS READ')
+    call residue_change(c3, 'junk.mod', action, found)
+    call check(found .and. action == 'D', 'THE RESIDUE''S DEPARTURE IS READ')
+    call check(.not. tree_has_path('HEAD', 'junk.mod'), &
+               'THE CURRENT TREE IS FREE OF THE RESIDUE')
+    call check(tree_has_path('HEAD', 'page.html'), &
+               'PRESENCE IS READ AS TRULY AS ABSENCE')
+
+    hf = historical_execution_finding()
+    call check(hf%verdict == 'UNPROVEN', &
+               'HISTORY''S OWN EXECUTION IS HONESTLY UNPROVEN')
+
+    allocate (fs(0))
+    call add_finding(fs, V_PROVEN, 'A CLEAN THING', 'It is clean.')
+    call add_finding(fs, V_HERESY, 'A FOUND SIN', 'It is found.')
+    call render_report('TRIAL REPORT', fs, report)
+    found = .false.
+    do i = 1, size(report)
+      if (index(report(i)%s, '[HERESY DETECTED] A FOUND SIN') > 0) found = .true.
+    end do
+    call check(found, 'THE REPORT CLASSIFIES ITS FINDINGS')
+    found = .false.
+    do i = 1, size(report)
+      if (index(report(i)%s, 'HERESY DETECTED: 1.') > 0) found = .true.
+    end do
+    call check(found, 'THE REPORT COUNTS ITS VERDICTS')
+    rr = run_cmd('if not exist build\audit\ mkdir build\audit')
+    call write_lines('build\audit\provenance.txt', report, ok)
+    call check(ok .and. exists('build\audit\provenance.txt'), &
+               'THE REPORT RESTS IN ITS IGNORED CRYPT')
+    call set_cwd(saved_root, ok)
+  end subroutine trial_audit_capabilities
 
   function exists(path) result(r)
     character(*), intent(in) :: path

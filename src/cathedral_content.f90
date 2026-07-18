@@ -12,6 +12,7 @@ module cathedral_content
   use cathedral_html, only: escape_html
   use cathedral_facts, only: build_facts_t
   use cathedral_testaments, only: testaments_body
+  use cathedral_why, only: why_body
   implicit none
   private
   public :: page_body
@@ -28,6 +29,8 @@ contains
     select case (slug)
     case ('nave')
       call nave_body(facts, body)
+    case ('why')
+      call why_body(body)
     case ('testaments')
       call testaments_body(body, known)
     case ('confessional')
@@ -91,7 +94,9 @@ contains
       'confessional, and the machinery that raised them. Fortran owns the ' // &
       'routing, the page assembly, the navigation, the stylesheet and its ' // &
       'design tokens, the rose window, the sitemap, the robots.txt, and the ' // &
-      'route manifest. The first wing now stands: ' // &
+      'route manifest. Two wings now stand: ' // &
+      '<a href="why-it-still-stands.html">Why It Still Stands</a>, the ' // &
+      'sourced case for Fortran&#39;s continued relevance, and ' // &
       '<a href="testaments.html">Old Testament / Modern Testament</a>, where ' // &
       'fixed-form and modern Fortran are read side by side and every exhibit ' // &
       'compiles. Further wings — the Book of BLAS, the Hall of Deprecated ' // &

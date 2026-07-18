@@ -3,7 +3,8 @@
 !> and manifest agree with the registry, and — enforced, not asserted —
 !> that no script tag exists anywhere in the porch.
 module cathedral_validate
-  use forty_util, only: string_t, to_lower, starts_with, count_substr, int_to_str
+  use forty_util, only: string_t, push_string, to_lower, starts_with, &
+                        count_substr, int_to_str
   use forty_ui, only: say, lament, rule
   use forty_paths, only: file_exists, quote, temp_root
   use forty_run, only: run_result, run_cmd, read_all_lines, tool_found
@@ -15,7 +16,7 @@ module cathedral_validate
   use cathedral_testaments, only: verse_t, verses
   implicit none
   private
-  public :: run_validate
+  public :: run_validate, extract_hrefs
 
   integer :: n_checks = 0
   integer :: n_breach = 0
@@ -94,6 +95,7 @@ contains
     call check_operational_record()
     call check_generation_doctrine(rs)
     call check_verses()
+    call check_links(rs)
 
     call rule()
     if (n_breach == 0) then
@@ -222,6 +224,70 @@ contains
                  'VERSE ' // vs(v)%id // ': NO DROPPINGS FOUL THE TREE')
     end do
   end subroutine check_verses
+
+  !> Every href value in a document, in order of appearance.
+  subroutine extract_hrefs(doc, urls)
+    character(*), intent(in) :: doc
+    type(string_t), allocatable, intent(out) :: urls(:)
+    integer :: pos, hit, close
+    character(*), parameter :: MARK = 'href="'
+    allocate (urls(0))
+    pos = 1
+    do
+      if (pos > len(doc)) exit
+      hit = index(doc(pos:), MARK)
+      if (hit == 0) exit
+      hit = pos + hit - 1 + len(MARK)
+      close = index(doc(hit:), '"')
+      if (close == 0) exit
+      if (close > 1) call push_string(urls, doc(hit:hit + close - 2))
+      pos = hit + close
+    end do
+  end subroutine extract_hrefs
+
+  !> Every internal door must open, and every external link on the Why
+  !> wing must stand in its declarative source record.
+  subroutine check_links(rs)
+    type(route_t), intent(in) :: rs(:)
+    type(string_t), allocatable :: urls(:), srclines(:)
+    character(:), allocatable :: doc, u, sources
+    integer :: i, j, frag
+    logical :: ok_all
+
+    do i = 1, size(rs)
+      doc = slurp('dist\' // rs(i)%file)
+      call extract_hrefs(doc, urls)
+      ok_all = .true.
+      do j = 1, size(urls)
+        u = urls(j)%s
+        if (index(u, '://') > 0) cycle
+        if (len(u) == 0) cycle
+        if (u(1:1) == '#') cycle
+        frag = index(u, '#')
+        if (frag > 0) u = u(1:frag - 1)
+        if (len(u) < 6) cycle
+        if (to_lower(u(len(u) - 4:)) /= '.html') cycle
+        if (.not. file_exists('dist\' // u)) ok_all = .false.
+      end do
+      call check(ok_all, rs(i)%file // ': ALL INTERNAL DOORS OPEN')
+    end do
+
+    call read_all_lines('content\why-it-still-stands\SOURCES.md', srclines)
+    sources = ''
+    do i = 1, size(srclines)
+      sources = sources // srclines(i)%s // achar(10)
+    end do
+    doc = slurp('dist\why-it-still-stands.html')
+    call extract_hrefs(doc, urls)
+    ok_all = .true.
+    do j = 1, size(urls)
+      u = urls(j)%s
+      if (index(u, '://') == 0) cycle
+      if (count_substr(sources, u) < 1) ok_all = .false.
+    end do
+    call check(ok_all, 'EVERY EXTERNAL LINK ON THE WHY WING STANDS IN ITS SOURCE RECORD')
+    call check(size(urls) > 0, 'THE WHY WING SPEAKS WITH CITATIONS, NOT ASSERTIONS')
+  end subroutine check_links
 
   pure function ends_ci(s, suffix) result(r)
     character(*), intent(in) :: s, suffix
