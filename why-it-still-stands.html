@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Why Fortran remains load-bearing in scientific computing: arrays, compilers, validated code, foundational libraries, and institutional continuity.">
+<meta name="generator" content="FORTY 0.6.0">
+<title>Why It Still Stands &#183; Fortran Cathedral</title>
+<link rel="icon" type="image/svg+xml" href="assets/ornament.svg">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/cathedral.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <img src="assets/ornament.svg" alt="" width="64" height="64">
+  <p class="site-title">Fortran Cathedral</p>
+  <p class="tagline">The web, as IBM never intended.</p>
+</header>
+<nav aria-label="Cathedral">
+  <ul>
+    <li><a href="index.html">The Nave</a></li>
+    <li><a href="why-it-still-stands.html" aria-current="page">Why It Stands</a></li>
+    <li><a href="testaments.html">The Testaments</a></li>
+    <li><a href="book-of-blas.html">Book of BLAS</a></li>
+    <li><a href="confessional.html">The Confessional</a></li>
+  </ul>
+</nav>
+<main id="main">
+<h1>Why It Still Stands</h1>
+<p>Fortran is not standing because nobody got around to demolishing it. It is standing because it is load-bearing. The language holds up a measurable share of the numerical software that forecasts weather, models climate, simulates aircraft, and runs on the world&#39;s largest computers &#8212; and it holds that weight for reasons that are concrete, unromantic, and worth understanding.</p>
+<p>This page states those reasons plainly, with sources. Where an authoritative source could not be found, the claim was not made.</p>
+<h2 id="why-myths">Myth and reality</h2>
+<table>
+  <caption>Four common myths, answered</caption>
+  <thead>
+    <tr><th scope="col">Myth</th><th scope="col">Reality</th></tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">Fortran is dead.</th><td>The ISO standard has been revised continuously through Fortran 2023<sup class="cite"><a href="#src-1">[1]</a></sup>, and at least three major compilers are under active development<sup class="cite"><a href="#src-2">[2]</a></sup>.</td></tr>
+    <tr><th scope="row">Fortran means FORTRAN 77.</th><td>Modern Fortran is free-form, modular, and checked. See the exhibits in <a href="testaments.html">Old Testament / Modern Testament</a>, where both liturgies compile.</td></tr>
+    <tr><th scope="row">It survives only as untouched legacy.</th><td>Operational systems written primarily in Fortran &#8212; among them ECMWF&#39;s IFS<sup class="cite"><a href="#src-9">[9]</a></sup> and NCAR&#39;s CESM<sup class="cite"><a href="#src-11">[11]</a></sup> &#8212; are actively developed today.</td></tr>
+    <tr><th scope="row">Python replaced it.</th><td>Much of scientific Python stands on compiled numerical kernels; SciPy exposes low-level interfaces to the LAPACK library directly<sup class="cite"><a href="#src-7">[7]</a></sup>. The snake often rides the ox.</td></tr>
+  </tbody>
+</table>
+<h2 id="why-arrays">Pillar I: arrays as first-class citizens</h2>
+<p>Fortran&#39;s subject matter is the array. Multidimensional arrays are part of the language&#39;s core grammar, and since Fortran 90 they converse directly: whole-array arithmetic, array constructors, and allocatable arrays sized at run time<sup class="cite"><a href="#src-14">[14]</a></sup>. Code written this way says what the mathematics means, and leaves the compiler an unusually clear view of what may be optimized.</p>
+<h2 id="why-compilers">Pillar II: mature optimizing compilers</h2>
+<p>A language is only as alive as its compilers. Fortran has several under active development: GFortran within GCC<sup class="cite"><a href="#src-3">[3]</a></sup>, Intel&#39;s LLVM-based ifx with Fortran 2018 support and selected 2023 features<sup class="cite"><a href="#src-4">[4]</a></sup>, and LLVM Flang<sup class="cite"><a href="#src-5">[5]</a></sup>, with a wider field catalogued by the community<sup class="cite"><a href="#src-2">[2]</a></sup>. Decades of investment in these optimizers is a compounding asset that a rewrite forfeits on day one.</p>
+<h2 id="why-validated">Pillar III: validated code is capital</h2>
+<p>Scientific code is not merely written; it is validated &#8212; against experiments, observations, and decades of operational use. The standard retires features with unusual care, as the <a href="testaments.html">Testaments</a> wing shows, and compilers keep faith with old scripture. The result: numerical code validated over generations still compiles, and institutions do not casually discard capital of that kind.</p>
+<h2 id="why-libraries">Pillar IV: the foundations are Fortran</h2>
+<p>The reference implementation of LAPACK &#8212; the linear-algebra package beneath a great deal of numerical software &#8212; is written in Fortran 90 and published at Netlib<sup class="cite"><a href="#src-6">[6]</a></sup>. Higher ecosystems reach down to it: SciPy documents its own low-level LAPACK interfaces<sup class="cite"><a href="#src-7">[7]</a></sup>. And the traffic flows both ways &#8212; standard C interoperability (<code>iso_c_binding</code>) makes Fortran kernels callable from the wider world<sup class="cite"><a href="#src-8">[8]</a></sup>. The <a href="book-of-blas.html">Book of BLAS</a> treats these foundations at length.</p>
+<h2 id="why-institutions">Pillar V: institutional continuity</h2>
+<p>The institutions that predict and simulate the physical world say plainly what their systems are built from. ECMWF describes the IFS suite as written primarily in modern Fortran<sup class="cite"><a href="#src-9">[9]</a></sup> and offers OpenIFS to research institutions<sup class="cite"><a href="#src-10">[10]</a></sup>. NCAR&#39;s CESM climate model is written mostly in Fortran<sup class="cite"><a href="#src-11">[11]</a></sup>, and the WRF atmospheric model&#39;s codebase is predominantly Fortran<sup class="cite"><a href="#src-12">[12]</a></sup>. NASA catalogues FUN3D, a Navier&#8211;Stokes solver used across aeronautics, as written in Fortran<sup class="cite"><a href="#src-13">[13]</a></sup>. Weather, climate, aerospace, and the machines they run on: this is the continuity that keeps the language funded, taught, and compiled.</p>
+<h2 id="why-timeline">The unbroken line</h2>
+<p>Nine revisions of one standard, each carrying the old code forward<sup class="cite"><a href="#src-1">[1]</a></sup>:</p>
+<ol class="timeline">
+  <li>FORTRAN <span class="year">1957</span></li>
+  <li>FORTRAN 66 <span class="year">1966</span></li>
+  <li>FORTRAN 77 <span class="year">1978</span></li>
+  <li>Fortran 90 <span class="year">1991</span></li>
+  <li>Fortran 95 <span class="year">1997</span></li>
+  <li>Fortran 2003 <span class="year">2004</span></li>
+  <li>Fortran 2008 <span class="year">2010</span></li>
+  <li>Fortran 2018 <span class="year">2018</span></li>
+  <li>Fortran 2023 <span class="year">2023</span></li>
+</ol>
+<h2 id="why-architecture">A note on this page</h2>
+<p>In keeping with the Cathedral&#39;s premise, this page &#8212; its markup, navigation, citations, and the numbered sources below &#8212; was assembled and emitted by Fortran. The claims above are also recorded declaratively in the repository, and the site&#39;s validator refuses any external link on this page that does not appear in that record.</p>
+<h2 id="why-sources">Sources</h2>
+<ol class="sources">
+  <li id="src-1"><a href="https://wg5-fortran.org/fearlier.html">WG5: earlier Fortran standards</a></li>
+  <li id="src-2"><a href="https://fortran-lang.org/compilers/">fortran-lang compiler index</a></li>
+  <li id="src-3"><a href="https://gcc.gnu.org/fortran/">GNU Fortran (GCC), official page</a></li>
+  <li id="src-4"><a href="https://www.intel.com/content/www/us/en/developer/articles/release-notes/fortran-compiler/2025.html">Intel Fortran Compiler release notes (2025)</a></li>
+  <li id="src-5"><a href="https://flang.llvm.org/docs/">LLVM Flang documentation</a></li>
+  <li id="src-6"><a href="https://www.netlib.org/lapack/">Netlib LAPACK</a></li>
+  <li id="src-7"><a href="https://docs.scipy.org/doc/scipy/reference/linalg.lapack.html">SciPy: low-level LAPACK functions</a></li>
+  <li id="src-8"><a href="https://gcc.gnu.org/onlinedocs/gfortran/ISO_005fC_005fBINDING.html">GNU Fortran manual: ISO_C_BINDING</a></li>
+  <li id="src-9"><a href="https://www.ecmwf.int/en/newsletter/171/news/open-source-integrated-forecasting-system">ECMWF: an open-source IFS</a></li>
+  <li id="src-10"><a href="https://www.ecmwf.int/en/research/projects/openifs">ECMWF OpenIFS project</a></li>
+  <li id="src-11"><a href="https://ncar.github.io/CESM-Tutorial/notebooks/resources/fortran.html">NCAR CESM tutorial: Fortran</a></li>
+  <li id="src-12"><a href="https://github.com/wrf-model/WRF">WRF model repository</a></li>
+  <li id="src-13"><a href="https://software.nasa.gov/software/LAR-20188-1">NASA Software Catalog: FUN3D</a></li>
+  <li id="src-14"><a href="https://www.nccs.nasa.gov/sites/default/docs/tutorials/f90studentnotes.pdf">NASA: Fortran 90 conversion course</a></li>
+</ol>
+</main>
+<footer>
+  <p>Generated by FORTY 0.6.0 &#183; Fortran files: 41 &#183; Heresy: 0 executable lines &#183; JavaScript: 0 lines</p>
+  <p>The language is old. The arrays remain contiguous.</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Fixed-form and modern Fortran side by side: five verses, two liturgies, one language. Every verse compiles.">
+<meta name="generator" content="FORTY 0.6.0">
+<title>Old Testament / Modern Testament &#183; Fortran Cathedral</title>
+<link rel="icon" type="image/svg+xml" href="assets/ornament.svg">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/cathedral.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <img src="assets/ornament.svg" alt="" width="64" height="64">
+  <p class="site-title">Fortran Cathedral</p>
+  <p class="tagline">The web, as IBM never intended.</p>
+</header>
+<nav aria-label="Cathedral">
+  <ul>
+    <li><a href="index.html">The Nave</a></li>
+    <li><a href="why-it-still-stands.html">Why It Stands</a></li>
+    <li><a href="testaments.html" aria-current="page">The Testaments</a></li>
+    <li><a href="book-of-blas.html">Book of BLAS</a></li>
+    <li><a href="confessional.html">The Confessional</a></li>
+  </ul>
+</nav>
+<main id="main">
+<h1>Old Testament / Modern Testament</h1>
+<p>The stereotype of Fortran is a fixed-form deck from 1977: capital letters, numbered statements, columns ruled like a ledger. The stereotype is real &#8212; and it is also a museum piece. Fortran has been revised by international standard nine times, and the modern language is free-form, modular, and checked. This wing reads the two side by side.</p>
+<p>Every exhibit below is real code from this repository, read from disk by the generator, dressed by a Fortran syntax highlighter, and syntax-checked by GFortran during <code>forty validate</code>. Every verse compiles.</p>
+<section class="verse">
+<h2 id="verse-shape">The shape of the source</h2>
+<div class="pair">
+<figure>
+  <figcaption>Old Testament &#183; fixed form</figcaption>
+<pre><code><span class="hl-c">C     VERSE 1, OLD TESTAMENT: THE SHAPE OF THE SOURCE.</span>
+<span class="hl-c">C     LABELS LIVE IN COLUMNS 1-5, CONTINUATION MARKS IN COLUMN 6,</span>
+<span class="hl-c">C     STATEMENTS IN COLUMNS 7 THROUGH 72. BEYOND 72, SILENCE.</span>
+      <span class="hl-k">PROGRAM</span> SHAPE
+      <span class="hl-k">INTEGER</span> ANSWER
+      ANSWER = <span class="hl-n">42</span>
+      <span class="hl-k">WRITE</span> (*, <span class="hl-n">100</span>)
+     &amp;  ANSWER
+  <span class="hl-n">100</span> <span class="hl-k">FORMAT</span> (<span class="hl-s">&#39;THE ANSWER, RENDERED FROM COLUMN SEVEN: &#39;</span>, I2)
+      <span class="hl-k">END</span>
+</code></pre>
+</figure>
+<figure>
+  <figcaption>Modern Testament &#183; free form</figcaption>
+<pre><code><span class="hl-c">! Verse 1, Modern Testament: free source form (Fortran 90).</span>
+<span class="hl-c">! Lines begin where they please; &amp; continues; comments follow !.</span>
+<span class="hl-k">program</span> shape
+  <span class="hl-k">implicit</span> <span class="hl-k">none</span>
+  <span class="hl-k">integer</span> :: answer = <span class="hl-n">42</span>
+  <span class="hl-k">print</span> <span class="hl-s">&#39;(a, i0)&#39;</span>, <span class="hl-s">&#39;The answer goes where it is needed: &#39;</span>, &amp;
+    answer
+<span class="hl-k">end</span> <span class="hl-k">program</span> shape
+</code></pre>
+</figure>
+</div>
+<p>Fixed form is a punched card wearing a standard: comment marks in column 1, statement labels in columns 1&#8211;5, a continuation mark in column 6, statements confined to columns 7 through 72, and silence beyond. Free source form, introduced with Fortran 90, released the line from the card; code begins where it is needed, <code>!</code> opens a comment, and <code>&amp;</code> continues.</p>
+</section>
+<section class="verse">
+<h2 id="verse-loops">Loops and labels</h2>
+<div class="pair">
+<figure>
+  <figcaption>Old Testament &#183; fixed form</figcaption>
+<pre><code><span class="hl-c">C     VERSE 2, OLD TESTAMENT: THE LABELED DO.</span>
+<span class="hl-c">C     THE LOOP MARCHES TO A NUMBERED STATEMENT. OBSOLESCENT SINCE</span>
+<span class="hl-c">C     FORTRAN 2018; ITS SHARED-LABEL COUSINS WERE DELETED OUTRIGHT.</span>
+      <span class="hl-k">PROGRAM</span> LOOPS
+      <span class="hl-k">INTEGER</span> I, TOTAL
+      TOTAL = <span class="hl-n">0</span>
+      <span class="hl-k">DO</span> <span class="hl-n">10</span> I = <span class="hl-n">1</span>, <span class="hl-n">10</span>
+         TOTAL = TOTAL + I
+   <span class="hl-n">10</span> <span class="hl-k">CONTINUE</span>
+      <span class="hl-k">WRITE</span> (*, *) <span class="hl-s">&#39;TOTAL:&#39;</span>, TOTAL
+      <span class="hl-k">END</span>
+</code></pre>
+</figure>
+<figure>
+  <figcaption>Modern Testament &#183; free form</figcaption>
+<pre><code><span class="hl-c">! Verse 2, Modern Testament: the block do (Fortran 90), with</span>
+<span class="hl-c">! exit and cycle in place of arithmetic and numbered faith.</span>
+<span class="hl-k">program</span> loops
+  <span class="hl-k">implicit</span> <span class="hl-k">none</span>
+  <span class="hl-k">integer</span> :: i, total
+  total = <span class="hl-n">0</span>
+  <span class="hl-k">do</span> i = <span class="hl-n">1</span>, <span class="hl-n">10</span>
+    <span class="hl-k">if</span> (mod(i, <span class="hl-n">2</span>) == <span class="hl-n">0</span>) <span class="hl-k">cycle</span>   <span class="hl-c">! pass over the even offerings</span>
+    total = total + i
+    <span class="hl-k">if</span> (total &gt; <span class="hl-n">20</span>) <span class="hl-k">exit</span>        <span class="hl-c">! depart when enough is gathered</span>
+  <span class="hl-k">end</span> <span class="hl-k">do</span>
+  <span class="hl-k">print</span> <span class="hl-s">&#39;(a, i0)&#39;</span>, <span class="hl-s">&#39;total: &#39;</span>, total
+<span class="hl-k">end</span> <span class="hl-k">program</span> loops
+</code></pre>
+</figure>
+</div>
+<p>The old loop marched to a numbered statement. The block <code>do &#8230; end do</code> of Fortran 90, with <code>exit</code> and <code>cycle</code>, replaced the numbers with structure. The labeled DO is obsolescent under Fortran 2018; its shared-termination cousins &#8212; and the arithmetic IF &#8212; were deleted from that standard outright, though compilers still accept them for the sake of the old scriptures.</p>
+</section>
+<section class="verse">
+<h2 id="verse-arrays">Arrays, element by element or whole</h2>
+<div class="pair">
+<figure>
+  <figcaption>Old Testament &#183; fixed form</figcaption>
+<pre><code><span class="hl-c">C     VERSE 3, OLD TESTAMENT: ARRAYS BY ELEMENT.</span>
+<span class="hl-c">C     FIXED SIZES, EXPLICIT LOOPS, EVERY ELEMENT VISITED BY HAND.</span>
+      <span class="hl-k">PROGRAM</span> ARRAYS
+      <span class="hl-k">INTEGER</span> N
+      <span class="hl-k">PARAMETER</span> (N = <span class="hl-n">5</span>)
+      <span class="hl-k">REAL</span> A(N), B(N), C(N)
+      <span class="hl-k">INTEGER</span> I
+      <span class="hl-k">DO</span> <span class="hl-n">20</span> I = <span class="hl-n">1</span>, N
+         A(I) = <span class="hl-k">REAL</span>(I)
+         B(I) = <span class="hl-n">2.0</span> * <span class="hl-k">REAL</span>(I)
+   <span class="hl-n">20</span> <span class="hl-k">CONTINUE</span>
+      <span class="hl-k">DO</span> <span class="hl-n">30</span> I = <span class="hl-n">1</span>, N
+         C(I) = A(I) + B(I)
+   <span class="hl-n">30</span> <span class="hl-k">CONTINUE</span>
+      <span class="hl-k">WRITE</span> (*, *) C
+      <span class="hl-k">END</span>
+</code></pre>
+</figure>
+<figure>
+  <figcaption>Modern Testament &#183; free form</figcaption>
+<pre><code><span class="hl-c">! Verse 3, Modern Testament: allocatable arrays and whole-array</span>
+<span class="hl-c">! arithmetic (Fortran 90). The loops dissolve; arrays converse.</span>
+<span class="hl-k">program</span> arrays
+  <span class="hl-k">implicit</span> <span class="hl-k">none</span>
+  <span class="hl-k">real</span>, <span class="hl-k">allocatable</span> :: a(:), b(:), c(:)
+  <span class="hl-k">integer</span> :: i
+  <span class="hl-k">allocate</span> (a(<span class="hl-n">5</span>), b(<span class="hl-n">5</span>), c(<span class="hl-n">5</span>))
+  a = [ (<span class="hl-k">real</span>(i), i = <span class="hl-n">1</span>, <span class="hl-n">5</span>) ]
+  b = <span class="hl-n">2.0</span> * a
+  c = a + b
+  <span class="hl-k">print</span> <span class="hl-s">&#39;(5f6.1)&#39;</span>, c
+<span class="hl-k">end</span> <span class="hl-k">program</span> arrays
+</code></pre>
+</figure>
+</div>
+<p>Arrays are the reason Fortran survives, and Fortran 90 let them speak for themselves: whole-array arithmetic, array constructors, and allocatable arrays sized at run time. What the Old Testament wrote as three loops, the Modern Testament writes as three sentences of algebra &#8212; which is also what the compiler optimizers prefer to read.</p>
+</section>
+<section class="verse">
+<h2 id="verse-sharing">Sharing data</h2>
+<div class="pair">
+<figure>
+  <figcaption>Old Testament &#183; fixed form</figcaption>
+<pre><code><span class="hl-c">C     VERSE 4, OLD TESTAMENT: THE COMMON BLOCK.</span>
+<span class="hl-c">C     SHARED STORAGE BY POSITION, TRUSTED BY ALL, CHECKED BY NONE.</span>
+<span class="hl-c">C     DECLARED OBSOLESCENT IN FORTRAN 2018.</span>
+      <span class="hl-k">PROGRAM</span> SHARING
+      <span class="hl-k">REAL</span> TEMP, PRESS
+      <span class="hl-k">COMMON</span> /STATE/ TEMP, PRESS
+      TEMP = <span class="hl-n">288.15</span>
+      PRESS = <span class="hl-n">101.325</span>
+      <span class="hl-k">CALL</span> REPORT
+      <span class="hl-k">END</span>
+      <span class="hl-k">SUBROUTINE</span> REPORT
+      <span class="hl-k">REAL</span> TEMP, PRESS
+      <span class="hl-k">COMMON</span> /STATE/ TEMP, PRESS
+      <span class="hl-k">WRITE</span> (*, *) <span class="hl-s">&#39;T =&#39;</span>, TEMP, <span class="hl-s">&#39; P =&#39;</span>, PRESS
+      <span class="hl-k">END</span>
+</code></pre>
+</figure>
+<figure>
+  <figcaption>Modern Testament &#183; free form</figcaption>
+<pre><code><span class="hl-c">! Verse 4, Modern Testament: the module (Fortran 90). Shared state</span>
+<span class="hl-c">! is named, typed, and reached through an explicit interface.</span>
+<span class="hl-k">module</span> state
+  <span class="hl-k">implicit</span> <span class="hl-k">none</span>
+  <span class="hl-k">real</span> :: temp = <span class="hl-n">288.15</span>
+  <span class="hl-k">real</span> :: press = <span class="hl-n">101.325</span>
+<span class="hl-k">end</span> <span class="hl-k">module</span> state
+
+<span class="hl-k">program</span> sharing
+  <span class="hl-k">use</span> state, <span class="hl-k">only</span>: temp, press
+  <span class="hl-k">implicit</span> <span class="hl-k">none</span>
+  <span class="hl-k">print</span> <span class="hl-s">&#39;(2(a, f8.3))&#39;</span>, <span class="hl-s">&#39;t = &#39;</span>, temp, <span class="hl-s">&#39;  p = &#39;</span>, press
+<span class="hl-k">end</span> <span class="hl-k">program</span> sharing
+</code></pre>
+</figure>
+</div>
+<p>The COMMON block shared raw storage by position: every program unit redeclared it, and no one checked their agreement. The module, introduced with Fortran 90, shares by name through an explicit, compiler-checked interface. COMMON, EQUIVALENCE, and BLOCK DATA were declared obsolescent in Fortran 2018; the module is why nobody mourns.</p>
+</section>
+<section class="verse">
+<h2 id="verse-precise">Precision, by decree or by name</h2>
+<div class="pair">
+<figure>
+  <figcaption>Old Testament &#183; fixed form</figcaption>
+<pre><code><span class="hl-c">C     VERSE 5, OLD TESTAMENT: DOUBLE PRECISION BY DECREE.</span>
+<span class="hl-c">C     (REAL*8, OFTEN SEEN IN THE WILD, WAS NEVER IN ANY STANDARD.)</span>
+      <span class="hl-k">PROGRAM</span> PRECISE
+      <span class="hl-k">DOUBLE</span> <span class="hl-k">PRECISION</span> PI
+      PI = <span class="hl-n">4.0</span>D0 * ATAN(<span class="hl-n">1.0</span>D0)
+      <span class="hl-k">WRITE</span> (*, <span class="hl-s">&#39;(F20.15)&#39;</span>) PI
+      <span class="hl-k">END</span>
+</code></pre>
+</figure>
+<figure>
+  <figcaption>Modern Testament &#183; free form</figcaption>
+<pre><code><span class="hl-c">! Verse 5, Modern Testament: kinds by name. selected_real_kind</span>
+<span class="hl-c">! arrived with Fortran 90; the named constants of iso_fortran_env</span>
+<span class="hl-c">! (real32, real64, real128) with Fortran 2008.</span>
+<span class="hl-k">program</span> precise
+  <span class="hl-k">use</span>, <span class="hl-k">intrinsic</span> :: iso_fortran_env, <span class="hl-k">only</span>: real64
+  <span class="hl-k">implicit</span> <span class="hl-k">none</span>
+  <span class="hl-k">real</span>(real64) :: pi
+  pi = <span class="hl-n">4.0</span>_real64 * atan(<span class="hl-n">1.0</span>_real64)
+  <span class="hl-k">print</span> <span class="hl-s">&#39;(f20.15)&#39;</span>, pi
+<span class="hl-k">end</span> <span class="hl-k">program</span> precise
+</code></pre>
+</figure>
+</div>
+<p>DOUBLE PRECISION has been standard since the early books, and the widely seen <code>REAL*8</code> never was &#8212; a vendor dialect mistaken for scripture. Fortran 90 brought <code>selected_real_kind</code>; Fortran 2008 added the named kind constants <code>real32</code>, <code>real64</code>, and <code>real128</code> in <code>iso_fortran_env</code>, so precision is requested by meaning rather than by folklore.</p>
+</section>
+<h2 id="the-living-standard">The living standard</h2>
+<p>Nine revisions, one unbroken line. Years give the publication of each standard; the first entry is the language&#39;s delivery by IBM.</p>
+<ol class="timeline">
+  <li>FORTRAN <span class="year">1957</span></li>
+  <li>FORTRAN 66 <span class="year">1966</span></li>
+  <li>FORTRAN 77 <span class="year">1978</span></li>
+  <li>Fortran 90 <span class="year">1991</span></li>
+  <li>Fortran 95 <span class="year">1997</span></li>
+  <li>Fortran 2003 <span class="year">2004</span></li>
+  <li>Fortran 2008 <span class="year">2010</span></li>
+  <li>Fortran 2018 <span class="year">2018</span></li>
+  <li>Fortran 2023 <span class="year">2023</span></li>
+</ol>
+<p>The standard retires its past with care: features are first declared <em>obsolescent</em> (still standard, discouraged), and only rarely <em>deleted</em>. Compilers, serving decades of working scripture, generally accept even the deleted. That patience is not weakness. It is why fifty-year-old physics still compiles.</p>
+<p>Sources for every dated claim on this page are recorded in the repository at <a href="https://github.com/teamofoxen/fortran-cathedral/blob/main/content/testaments/SOURCES.md">content/testaments/SOURCES.md</a>.</p>
+</main>
+<footer>
+  <p>Generated by FORTY 0.6.0 &#183; Fortran files: 41 &#183; Heresy: 0 executable lines &#183; JavaScript: 0 lines</p>
+  <p>The language is old. The arrays remain contiguous.</p>
+</footer>
+</body>
+</html>

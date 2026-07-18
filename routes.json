@@ -1,0 +1,31 @@
+{
+  "generator": "FORTY 0.6.0",
+  "base": "https://teamofoxen.github.io/fortran-cathedral",
+  "routes": [
+    {
+      "slug": "nave",
+      "file": "index.html",
+      "title": "The Nave"
+    },
+    {
+      "slug": "why",
+      "file": "why-it-still-stands.html",
+      "title": "Why It Still Stands"
+    },
+    {
+      "slug": "testaments",
+      "file": "testaments.html",
+      "title": "Old Testament / Modern Testament"
+    },
+    {
+      "slug": "blas",
+      "file": "book-of-blas.html",
+      "title": "The Book of BLAS"
+    },
+    {
+      "slug": "confessional",
+      "file": "confessional.html",
+      "title": "The Confessional"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+/* EMITTED BY FORTY. THE DESIGN TOKENS OF THE CATHEDRAL. */
+:root {
+  --ground: #0f130f;
+  --panel: #161c16;
+  --ink: #e8e4d5;
+  --ink-dim: #b3ae9c;
+  --accent: #ffb000;
+  --accent-2: #8fd98f;
+  --rule: #2e352e;
+  --measure: 70ch;
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 2rem;
+  --space-4: 3.5rem;
+  --font-liturgy: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+  --font-prose: Georgia, "Times New Roman", serif;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --ground: #f4f1e6;
+    --panel: #ebe6d6;
+    --ink: #232819;
+    --ink-dim: #5c6152;
+    --accent: #8a5800;
+    --accent-2: #2e6b2e;
+    --rule: #cdc7b2;
+  }
+}

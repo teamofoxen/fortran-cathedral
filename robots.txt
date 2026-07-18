@@ -1,0 +1,4 @@
+# EMITTED BY FORTY. ALL CRAWLERS ARE WELCOME IN THE NAVE.
+User-agent: *
+Allow: /
+Sitemap: https://teamofoxen.github.io/fortran-cathedral/sitemap.xml

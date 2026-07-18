@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="What BLAS is, why it became foundational, the three levels, and how LAPACK and higher ecosystems stand on it. Every exhibit computed by Fortran.">
+<meta name="generator" content="FORTY 0.6.0">
+<title>The Book of BLAS &#183; Fortran Cathedral</title>
+<link rel="icon" type="image/svg+xml" href="assets/ornament.svg">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/cathedral.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <img src="assets/ornament.svg" alt="" width="64" height="64">
+  <p class="site-title">Fortran Cathedral</p>
+  <p class="tagline">The web, as IBM never intended.</p>
+</header>
+<nav aria-label="Cathedral">
+  <ul>
+    <li><a href="index.html">The Nave</a></li>
+    <li><a href="why-it-still-stands.html">Why It Stands</a></li>
+    <li><a href="testaments.html">The Testaments</a></li>
+    <li><a href="book-of-blas.html" aria-current="page">Book of BLAS</a></li>
+    <li><a href="confessional.html">The Confessional</a></li>
+  </ul>
+</nav>
+<main id="main">
+<h1>The Book of BLAS</h1>
+<p>BLAS &#8212; the Basic Linear Algebra Subprograms &#8212; is not a single program. It is a published specification of low-level vector and matrix operations, with a Fortran reference implementation kept at Netlib<sup class="cite"><a href="#src-1">[1]</a></sup>. Its genius is the separation of interface from implementation: code written against the standard routine names can run on the plain reference Fortran, or on a machine-tuned library that implements the same interface many times faster<sup class="cite"><a href="#src-2">[2]</a></sup>. That bargain &#8212; portable mathematics, replaceable speed &#8212; is why so much numerical software chose to stand on it.</p>
+<p>The operations are organized in three levels, named in order of their arrival and their appetite: vector operations (Level 1, specified in 1979), matrix&#8211;vector operations (Level 2, 1988), and matrix&#8211;matrix operations (Level 3, 1990)<sup class="cite"><a href="#src-2">[2]</a></sup><sup class="cite"><a href="#src-3">[3]</a></sup>. Each exhibit below is computed, laid into its tables, and drawn into its map by this site&#39;s own Fortran at generation time.</p>
+<h2 id="blas-level1">Level 1: AXPY, the vector verse</h2>
+<p>Level 1 works on vectors: dot products, norms, and the archetype AXPY &#8212; <em>a x plus y</em>, <code>y &#8592; &#945;x + y</code><sup class="cite"><a href="#src-3">[3]</a></sup>. In the naming convention, a type prefix chooses precision: SAXPY in single, DAXPY in double<sup class="cite"><a href="#src-2">[2]</a></sup>. Here is the operation, with &#945; = 2.0:</p>
+<table>
+  <caption>Operand x (length 4)</caption>
+  <thead>
+    <tr><td></td><th scope="col">1</th><th scope="col">2</th><th scope="col">3</th><th scope="col">4</th></tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">value</th><td class="num">1.0</td><td class="num">2.0</td><td class="num">3.0</td><td class="num">4.0</td></tr>
+  </tbody>
+</table>
+<table>
+  <caption>Operand y (length 4)</caption>
+  <thead>
+    <tr><td></td><th scope="col">1</th><th scope="col">2</th><th scope="col">3</th><th scope="col">4</th></tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">value</th><td class="num">10.0</td><td class="num">20.0</td><td class="num">30.0</td><td class="num">40.0</td></tr>
+  </tbody>
+</table>
+<table>
+  <caption>Result &#945;x + y, computed by the generator</caption>
+  <thead>
+    <tr><td></td><th scope="col">1</th><th scope="col">2</th><th scope="col">3</th><th scope="col">4</th></tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">value</th><td class="num">12.0</td><td class="num">24.0</td><td class="num">36.0</td><td class="num">48.0</td></tr>
+  </tbody>
+</table>
+<figure class="opmap">
+<svg viewBox="0 0 164 126" role="img" aria-label="alpha times x plus y equals the result: three vectors of length 4">
+  <rect x="12" y="12" width="20" height="80" fill="none" stroke="#ffb000" stroke-width="2"/>
+  <line x1="12" y1="32" x2="32" y2="32" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="12" y1="52" x2="32" y2="52" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="12" y1="72" x2="32" y2="72" stroke="#ffb000" stroke-width="0.5"/>
+  <text x="22" y="108" fill="#ffb000" font-family="monospace" font-size="12" text-anchor="middle">&#945;x 4&#215;1</text>
+  <text x="52" y="57" fill="#ffb000" font-family="monospace" font-size="16" text-anchor="middle">+</text>
+  <rect x="72" y="12" width="20" height="80" fill="none" stroke="#ffb000" stroke-width="2"/>
+  <line x1="72" y1="32" x2="92" y2="32" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="72" y1="52" x2="92" y2="52" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="72" y1="72" x2="92" y2="72" stroke="#ffb000" stroke-width="0.5"/>
+  <text x="82" y="108" fill="#ffb000" font-family="monospace" font-size="12" text-anchor="middle">y 4&#215;1</text>
+  <text x="112" y="57" fill="#ffb000" font-family="monospace" font-size="16" text-anchor="middle">=</text>
+  <rect x="132" y="12" width="20" height="80" fill="none" stroke="#ffb000" stroke-width="2"/>
+  <line x1="132" y1="32" x2="152" y2="32" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="132" y1="52" x2="152" y2="52" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="132" y1="72" x2="152" y2="72" stroke="#ffb000" stroke-width="0.5"/>
+  <text x="142" y="108" fill="#ffb000" font-family="monospace" font-size="12" text-anchor="middle">&#945;x+y 4&#215;1</text>
+</svg>
+</figure>
+<p>Level 1 does O(n) arithmetic on O(n) data: every number is touched about once. Useful, ubiquitous &#8212; and memory-bound almost by definition.</p>
+<h2 id="blas-level2">Level 2: GEMV, the matrix&#8211;vector verse</h2>
+<p>Level 2 works between a matrix and a vector: the archetype GEMV computes <code>y &#8592; A x</code><sup class="cite"><a href="#src-3">[3]</a></sup>. The matrix below is deliberately not square &#8212; two rows, three columns &#8212; because the interface is general:</p>
+<table>
+  <caption>Operand A (2&#215;3)</caption>
+  <thead>
+    <tr><td></td><th scope="col">1</th><th scope="col">2</th><th scope="col">3</th></tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">1</th><td class="num">1.0</td><td class="num">2.0</td><td class="num">3.0</td></tr>
+    <tr><th scope="row">2</th><td class="num">4.0</td><td class="num">5.0</td><td class="num">6.0</td></tr>
+  </tbody>
+</table>
+<table>
+  <caption>Operand x (length 3)</caption>
+  <thead>
+    <tr><td></td><th scope="col">1</th><th scope="col">2</th><th scope="col">3</th></tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">value</th><td class="num">7.0</td><td class="num">8.0</td><td class="num">9.0</td></tr>
+  </tbody>
+</table>
+<table>
+  <caption>Result y = Ax, computed by the generator</caption>
+  <thead>
+    <tr><td></td><th scope="col">1</th><th scope="col">2</th></tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">value</th><td class="num">50.0</td><td class="num">122.0</td></tr>
+  </tbody>
+</table>
+<figure class="opmap">
+<svg viewBox="0 0 204 106" role="img" aria-label="A two-by-three matrix times a length-three vector equals a length-two vector">
+  <rect x="12" y="22" width="60" height="40" fill="none" stroke="#ffb000" stroke-width="2"/>
+  <line x1="32" y1="22" x2="32" y2="62" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="52" y1="22" x2="52" y2="62" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="12" y1="42" x2="72" y2="42" stroke="#ffb000" stroke-width="0.5"/>
+  <text x="42" y="78" fill="#ffb000" font-family="monospace" font-size="12" text-anchor="middle">A 2&#215;3</text>
+  <text x="92" y="47" fill="#ffb000" font-family="monospace" font-size="16" text-anchor="middle">&#215;</text>
+  <rect x="112" y="12" width="20" height="60" fill="none" stroke="#ffb000" stroke-width="2"/>
+  <line x1="112" y1="32" x2="132" y2="32" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="112" y1="52" x2="132" y2="52" stroke="#ffb000" stroke-width="0.5"/>
+  <text x="122" y="88" fill="#ffb000" font-family="monospace" font-size="12" text-anchor="middle">x 3&#215;1</text>
+  <text x="152" y="47" fill="#ffb000" font-family="monospace" font-size="16" text-anchor="middle">=</text>
+  <rect x="172" y="22" width="20" height="40" fill="none" stroke="#ffb000" stroke-width="2"/>
+  <line x1="172" y1="42" x2="192" y2="42" stroke="#ffb000" stroke-width="0.5"/>
+  <text x="182" y="78" fill="#ffb000" font-family="monospace" font-size="12" text-anchor="middle">y 2&#215;1</text>
+</svg>
+</figure>
+<p>Dimensional law: the columns of A must equal the length of x. This site&#39;s generator refuses mismatched shapes, and its trials prove the refusal. Level 2 performs O(n&#178;) arithmetic on O(n&#178;) data &#8212; still roughly one visit per number.</p>
+<h2 id="blas-level3">Level 3: GEMM, the matrix&#8211;matrix verse</h2>
+<p>Level 3 works between matrices: the archetype GEMM computes <code>C &#8592; A B</code><sup class="cite"><a href="#src-3">[3]</a></sup>. Again the operands are rectangular; only the inner dimensions must agree:</p>
+<table>
+  <caption>Operand A (2&#215;3)</caption>
+  <thead>
+    <tr><td></td><th scope="col">1</th><th scope="col">2</th><th scope="col">3</th></tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">1</th><td class="num">1.0</td><td class="num">2.0</td><td class="num">3.0</td></tr>
+    <tr><th scope="row">2</th><td class="num">4.0</td><td class="num">5.0</td><td class="num">6.0</td></tr>
+  </tbody>
+</table>
+<table>
+  <caption>Operand B (3&#215;2)</caption>
+  <thead>
+    <tr><td></td><th scope="col">1</th><th scope="col">2</th></tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">1</th><td class="num">1.0</td><td class="num">2.0</td></tr>
+    <tr><th scope="row">2</th><td class="num">3.0</td><td class="num">4.0</td></tr>
+    <tr><th scope="row">3</th><td class="num">5.0</td><td class="num">6.0</td></tr>
+  </tbody>
+</table>
+<table>
+  <caption>Result C = AB (2&#215;2), computed by the generator</caption>
+  <thead>
+    <tr><td></td><th scope="col">1</th><th scope="col">2</th></tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">1</th><td class="num">22.0</td><td class="num">28.0</td></tr>
+    <tr><th scope="row">2</th><td class="num">49.0</td><td class="num">64.0</td></tr>
+  </tbody>
+</table>
+<figure class="opmap">
+<svg viewBox="0 0 244 106" role="img" aria-label="A two-by-three matrix times a three-by-two matrix equals a two-by-two matrix">
+  <rect x="12" y="22" width="60" height="40" fill="none" stroke="#ffb000" stroke-width="2"/>
+  <line x1="32" y1="22" x2="32" y2="62" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="52" y1="22" x2="52" y2="62" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="12" y1="42" x2="72" y2="42" stroke="#ffb000" stroke-width="0.5"/>
+  <text x="42" y="78" fill="#ffb000" font-family="monospace" font-size="12" text-anchor="middle">A 2&#215;3</text>
+  <text x="92" y="47" fill="#ffb000" font-family="monospace" font-size="16" text-anchor="middle">&#215;</text>
+  <rect x="112" y="12" width="40" height="60" fill="none" stroke="#ffb000" stroke-width="2"/>
+  <line x1="132" y1="12" x2="132" y2="72" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="112" y1="32" x2="152" y2="32" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="112" y1="52" x2="152" y2="52" stroke="#ffb000" stroke-width="0.5"/>
+  <text x="132" y="88" fill="#ffb000" font-family="monospace" font-size="12" text-anchor="middle">B 3&#215;2</text>
+  <text x="172" y="47" fill="#ffb000" font-family="monospace" font-size="16" text-anchor="middle">=</text>
+  <rect x="192" y="22" width="40" height="40" fill="none" stroke="#ffb000" stroke-width="2"/>
+  <line x1="212" y1="22" x2="212" y2="62" stroke="#ffb000" stroke-width="0.5"/>
+  <line x1="192" y1="42" x2="232" y2="42" stroke="#ffb000" stroke-width="0.5"/>
+  <text x="212" y="78" fill="#ffb000" font-family="monospace" font-size="12" text-anchor="middle">C 2&#215;2</text>
+</svg>
+</figure>
+<p>Here the economics change. Multiplying an n&#215;n pair performs O(n&#179;) arithmetic on only O(n&#178;) data &#8212; many operations per number moved. That surplus is what optimized implementations spend: blocks of the matrices can be staged in fast cache and reused, so a tuned GEMM approaches what the arithmetic units can actually sustain. This is why blocked algorithms put matrix&#8211;matrix work in their inner loops<sup class="cite"><a href="#src-6">[6]</a></sup>, and why Level 3 is the level modern hardware loves best.</p>
+<p><strong>What computed these numbers:</strong> the tables above were calculated at generation time by this site&#39;s own Fortran generator, using transparent reference arithmetic &#8212; the same operations the BLAS standardizes &#8212; not by a linked optimized BLAS library. The site&#39;s validator recomputes every exhibit and refuses the page if a displayed value disagrees.</p>
+<h2 id="blas-vs-lapack">BLAS and LAPACK</h2>
+<p>BLAS supplies the bricks; LAPACK builds the cathedral. LAPACK &#8212; the Linear Algebra PACKage, written in Fortran<sup class="cite"><a href="#src-4">[4]</a></sup> &#8212; provides the higher operations of scientific computing: solving linear systems, least squares, eigenvalues, singular values. Its routines are written so that as much computation as possible is performed by calls to the BLAS, and it was designed at the outset to exploit Level 3<sup class="cite"><a href="#src-5">[5]</a></sup>. Install a faster BLAS beneath it, and LAPACK gets faster without changing a line &#8212; the key to its portability<sup class="cite"><a href="#src-6">[6]</a></sup>.</p>
+<h2 id="blas-chain">The call chain</h2>
+<p>A user of a high-level environment may never see these names, yet may stand on them. One common shape of the descent:</p>
+<ol class="chain">
+  <li>A researcher calls a high-level linear-algebra routine &#8212; NumPy&#39;s and SciPy&#39;s, for instance, are documented as relying on BLAS and LAPACK<sup class="cite"><a href="#src-7">[7]</a></sup><sup class="cite"><a href="#src-8">[8]</a></sup>.</li>
+  <li>The environment dispatches to LAPACK drivers for factorizations and solves<sup class="cite"><a href="#src-5">[5]</a></sup>.</li>
+  <li>LAPACK casts the heavy work as BLAS calls, Level 3 wherever it can<sup class="cite"><a href="#src-5">[5]</a></sup><sup class="cite"><a href="#src-6">[6]</a></sup>.</li>
+  <li>The BLAS interface is served by whatever implementation is installed: the reference Fortran from Netlib<sup class="cite"><a href="#src-1">[1]</a></sup>, or an optimized library such as OpenBLAS<sup class="cite"><a href="#src-9">[9]</a></sup> or Intel oneMKL<sup class="cite"><a href="#src-10">[10]</a></sup>.</li>
+</ol>
+<h2 id="blas-glossary">Glossary</h2>
+<dl class="glossary">
+  <dt>BLAS</dt>
+  <dd>Basic Linear Algebra Subprograms: a standardized set of low-level vector and matrix routines<sup class="cite"><a href="#src-1">[1]</a></sup>.</dd>
+  <dt>Reference implementation</dt>
+  <dd>The plain, portable Fortran realization of the BLAS kept at Netlib; correct everywhere, tuned for nowhere<sup class="cite"><a href="#src-2">[2]</a></sup>.</dd>
+  <dt>Optimized implementation</dt>
+  <dd>A library implementing the same interface with architecture-specific tuning, such as OpenBLAS or oneMKL<sup class="cite"><a href="#src-9">[9]</a></sup><sup class="cite"><a href="#src-10">[10]</a></sup>.</dd>
+  <dt>Level 1 / 2 / 3</dt>
+  <dd>The operation classes: vector&#8211;vector, matrix&#8211;vector, and matrix&#8211;matrix<sup class="cite"><a href="#src-3">[3]</a></sup>.</dd>
+  <dt>AXPY, GEMV, GEMM</dt>
+  <dd>The archetypal routine of each level; a precision prefix (S, D, C, Z) completes the name<sup class="cite"><a href="#src-2">[2]</a></sup>.</dd>
+  <dt>LAPACK</dt>
+  <dd>The Linear Algebra PACKage: factorizations, solvers, and eigenproblems built on the BLAS<sup class="cite"><a href="#src-4">[4]</a></sup><sup class="cite"><a href="#src-5">[5]</a></sup>.</dd>
+  <dt>Arithmetic intensity</dt>
+  <dd>Operations performed per datum moved; the resource Level 3 has in surplus and optimized libraries exploit<sup class="cite"><a href="#src-6">[6]</a></sup>.</dd>
+  <dt>Blocked algorithm</dt>
+  <dd>An algorithm reorganized to work on submatrices so its inner loops become Level 3 calls<sup class="cite"><a href="#src-6">[6]</a></sup>.</dd>
+</dl>
+<h2 id="blas-sources">Sources</h2>
+<ol class="sources">
+  <li id="src-1"><a href="https://www.netlib.org/blas/">Netlib BLAS</a></li>
+  <li id="src-2"><a href="https://www.netlib.org/blas/faq.html">Netlib BLAS FAQ</a></li>
+  <li id="src-3"><a href="https://www.netlib.org/lapack/lawn81-3.0/node7.html">LAPACK Working Note 81: Level 1, 2, and 3 BLAS</a></li>
+  <li id="src-4"><a href="https://www.netlib.org/lapack/">Netlib LAPACK</a></li>
+  <li id="src-5"><a href="https://www.netlib.org/lapack/lug/node11.html">LAPACK Users&#39; Guide: LAPACK and the BLAS</a></li>
+  <li id="src-6"><a href="https://www.netlib.org/lapack/lug/node65.html">LAPACK Users&#39; Guide: The BLAS as the Key to Portability</a></li>
+  <li id="src-7"><a href="https://numpy.org/doc/stable/reference/routines.linalg.html">NumPy manual: Linear algebra</a></li>
+  <li id="src-8"><a href="https://docs.scipy.org/doc/scipy/reference/linalg.lapack.html">SciPy manual: low-level LAPACK functions</a></li>
+  <li id="src-9"><a href="https://www.openmathlib.org/OpenBLAS/docs/faq/">OpenBLAS documentation</a></li>
+  <li id="src-10"><a href="https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-fortran/2024-0/overview.html">Intel oneMKL Developer Reference (Fortran)</a></li>
+</ol>
+<p>Continue through the Cathedral: <a href="why-it-still-stands.html">Why It Still Stands</a> for the wider case, or <a href="testaments.html">Old Testament / Modern Testament</a> to read the language itself.</p>
+</main>
+<footer>
+  <p>Generated by FORTY 0.6.0 &#183; Fortran files: 41 &#183; Heresy: 0 executable lines &#183; JavaScript: 0 lines</p>
+  <p>The language is old. The arrays remain contiguous.</p>
+</footer>
+</body>
+</html>
