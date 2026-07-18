@@ -15,6 +15,8 @@ module cathedral_validate
   use cathedral_routes, only: route_t, routes
   use cathedral_testaments, only: verse_t, verses
   use cathedral_blas, only: exhibit_axpy, exhibit_gemv, exhibit_gemm, fmt_num
+  use cathedral_hall, only: hall_exhibit_t, hall_exhibits, probe_verdict_t, &
+                            run_probe, category_text, CAT_CLEAN
   implicit none
   private
   public :: run_validate, extract_hrefs
@@ -99,6 +101,7 @@ contains
     call check_verses()
     call check_links(rs)
     call check_blas_arithmetic()
+    call check_hall()
 
     call rule()
     if (n_breach == 0) then
@@ -279,7 +282,42 @@ contains
                             'content\why-it-still-stands\SOURCES.md', 'WHY WING')
     call check_page_sources('dist\book-of-blas.html', &
                             'content\book-of-blas\SOURCES.md', 'BOOK OF BLAS')
+    call check_page_sources('dist\hall-of-deprecated-syntax.html', &
+                            'content\hall-of-deprecated-syntax\SOURCES.md', 'HALL')
   end subroutine check_links
+
+  !> The Hall's testimony is re-measured: the validator re-runs every
+  !> compiler probe and requires the page to display the same verdicts.
+  !> Every modern reading must be accepted cleanly under -std=f2018.
+  subroutine check_hall()
+    type(hall_exhibit_t), allocatable :: xs(:)
+    type(probe_verdict_t) :: v
+    character(:), allocatable :: page
+    integer :: i
+
+    page = slurp('dist\hall-of-deprecated-syntax.html')
+    call check(count_substr(page, 'id="hall-legend"') == 1, &
+               'THE FIVE FATES ARE TAUGHT APART')
+    xs = hall_exhibits()
+    call check(size(xs) == 6, 'SIX EXHIBITS STAND IN THE HALL')
+    do i = 1, size(xs)
+      call check(file_exists(xs(i)%old_file) .and. &
+                 file_exists(xs(i)%modern_file), &
+                 'HALL ' // xs(i)%id // ': BOTH SCROLLS EXIST')
+      call check(count_substr(page, 'id="hall-' // xs(i)%id // '"') == 1, &
+                 'HALL ' // xs(i)%id // ': STANDS ON THE PAGE EXACTLY ONCE')
+      call run_probe(xs(i)%old_file, v)
+      call check(v%ok .and. count_substr(page, category_text(v%category)) >= 1, &
+                 'HALL ' // xs(i)%id // ': THE PAGE SHOWS THE COMPILER''S ' // &
+                 'TRUE TESTIMONY')
+      call run_probe(xs(i)%modern_file, v)
+      call check(v%ok .and. v%category == CAT_CLEAN, &
+                 'HALL ' // xs(i)%id // ': THE MODERN READING IS CLEAN ' // &
+                 'UNDER -std=f2018')
+    end do
+    call check(.not. file_exists('state.mod'), &
+               'THE PROBES LEFT NO DROPPINGS IN THE TREE')
+  end subroutine check_hall
 
   !> Every external link on a sourced wing must stand in its own
   !> declarative source record, and the wing must actually cite.

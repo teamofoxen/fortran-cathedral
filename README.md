@@ -140,7 +140,18 @@ fabric — one confirmation, dry-run support, idempotent repeats, honest
 reporting while Pages is still publishing. The Cathedral is public at
 https://teamofoxen.github.io/fortran-cathedral/.
 
-Further wings — the Hall of Deprecated Syntax, the Saints of Numerical
-Computing — await their phases.
+Phase 6 ordained the browser tape measure — `forty inspect [local|public]`
+drives a headless Chromium household (Edge or Chrome) through its
+official debugging flags, generating a temporary measurement harness
+under ignored ground, then parsing and judging every layout fact itself:
+overflow, viewport honor, stylesheet rules, nav state, markers, SVG and
+table rendering, code-block containment, responsive type, and internal
+doors. It also opened **The Hall of Deprecated Syntax**: six exhibits,
+five distinct fates (standard / obsolescent / deleted / never standard /
+extension), each bearing the compiler's own probed testimony under
+`-std=f2018` and by default — measured at generation, re-measured by the
+validator, never asserted from prose.
+
+The Saints of Numerical Computing await their phase.
 
 > THE LANGUAGE IS OLD. THE ARRAYS REMAIN CONTIGUOUS.

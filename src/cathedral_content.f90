@@ -14,6 +14,7 @@ module cathedral_content
   use cathedral_testaments, only: testaments_body
   use cathedral_why, only: why_body
   use cathedral_blas, only: blas_body
+  use cathedral_hall, only: hall_body
   implicit none
   private
   public :: page_body
@@ -36,6 +37,8 @@ contains
       call testaments_body(body, known)
     case ('blas')
       call blas_body(body, known)
+    case ('hall')
+      call hall_body(body, known)
     case ('confessional')
       call confessional_body(facts, body)
     case default
@@ -97,15 +100,16 @@ contains
       'confessional, and the machinery that raised them. Fortran owns the ' // &
       'routing, the page assembly, the navigation, the stylesheet and its ' // &
       'design tokens, the rose window, the sitemap, the robots.txt, and the ' // &
-      'route manifest. Three wings now stand: ' // &
+      'route manifest. Four wings now stand: ' // &
       '<a href="why-it-still-stands.html">Why It Still Stands</a>, the ' // &
       'sourced case for Fortran&#39;s continued relevance; ' // &
       '<a href="testaments.html">Old Testament / Modern Testament</a>, where ' // &
       'fixed-form and modern Fortran are read side by side and every exhibit ' // &
-      'compiles; and <a href="book-of-blas.html">The Book of BLAS</a>, whose ' // &
-      'arithmetic is computed by the generator itself. Further wings — the ' // &
-      'Hall of Deprecated Syntax, the Saints of Numerical Computing — await ' // &
-      'their phases.')
+      'compiles; <a href="book-of-blas.html">The Book of BLAS</a>, whose ' // &
+      'arithmetic is computed by the generator itself; and ' // &
+      '<a href="hall-of-deprecated-syntax.html">The Hall of Deprecated ' // &
+      'Syntax</a>, where each retired feature bears the compiler&#39;s own ' // &
+      'testimony. The Saints of Numerical Computing await their phase.')
     call para(body, 'The full accounting of this site&#39;s purity is public, in ' // &
       'the <a href="confessional.html">Confessional</a>.')
   end subroutine nave_body

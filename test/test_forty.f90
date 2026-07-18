@@ -62,6 +62,12 @@ program test_forty
   use forty_deploy, only: deploy_preflight, build_deploy_tree, deploy_parent, &
                           make_deploy_commit, push_deploy, deploy_needed, &
                           tree_manifest, gate_production, parse_pages_response
+  use cathedral_hall, only: hall_exhibit_t, hall_exhibits, probe_verdict_t, &
+                            run_probe, normalize_diag, category_text, &
+                            CAT_CLEAN, CAT_WARN, CAT_EXTENSION, CAT_REJECTED
+  use forty_inspect, only: measure_t, harness_lines, browser_command, &
+                           path_to_url, parse_measure, judge_page, &
+                           render_inspection
   use forty_audit, only: finding_t, add_finding, tree_paths, scan_tracked_html, &
                          scan_template_suspects, scan_tree_heresy, commit_exists, &
                          signature_module, residue_change, tree_has_path, &
@@ -127,6 +133,9 @@ program test_forty
   call trial_audit_capabilities()
   call trial_deploy_engine()
   call trial_deploy_planning()
+  call trial_hall_probes()
+  call trial_hall_page()
+  call trial_tape_measure()
 
   call summary()
   if (n_fail > 0) call exit(1)
@@ -564,13 +573,14 @@ contains
     character(:), allocatable :: doc
     integer :: i
     rs = routes()
-    call check(size(rs) == 5, 'FIVE ROUTES STAND IN THE REGISTRY')
-    if (size(rs) == 5) then
+    call check(size(rs) == 6, 'SIX ROUTES STAND IN THE REGISTRY')
+    if (size(rs) == 6) then
       call check_str(rs(1)%file, 'index.html', 'THE NAVE IS THE INDEX')
       call check_str(rs(2)%file, 'why-it-still-stands.html', 'WHY HAS ITS DOOR')
       call check_str(rs(3)%file, 'testaments.html', 'THE TESTAMENTS HAVE THEIR DOOR')
       call check_str(rs(4)%file, 'book-of-blas.html', 'THE BOOK OF BLAS HAS ITS DOOR')
-      call check_str(rs(5)%file, 'confessional.html', 'THE CONFESSIONAL HAS ITS DOOR')
+      call check_str(rs(5)%file, 'hall-of-deprecated-syntax.html', 'THE HALL HAS ITS DOOR')
+      call check_str(rs(6)%file, 'confessional.html', 'THE CONFESSIONAL HAS ITS DOOR')
     end if
     allocate (nav(0))
     call append_nav(nav, 'nave')
@@ -624,10 +634,10 @@ contains
 
   subroutine trial_determinism()
     type(string_t), allocatable :: first(:), second(:)
-    character(32), parameter :: works(7) = [character(32) :: &
+    character(40), parameter :: works(8) = [character(40) :: &
       'dist\index.html', 'dist\confessional.html', &
       'dist\testaments.html', 'dist\why-it-still-stands.html', &
-      'dist\book-of-blas.html', &
+      'dist\book-of-blas.html', 'dist\hall-of-deprecated-syntax.html', &
       'dist\assets\ornament.svg', 'dist\routes.json']
     integer :: code, w, i
     logical :: same
@@ -877,6 +887,218 @@ contains
     logical :: r
     r = abs(a - b) < 1.0e-9_real64
   end function nearly
+
+  subroutine trial_hall_probes()
+    type(hall_exhibit_t), allocatable :: xs(:)
+    type(probe_verdict_t) :: v
+    integer, parameter :: EXPECT(6) = [CAT_EXTENSION, CAT_EXTENSION, &
+                                       CAT_WARN, CAT_WARN, CAT_CLEAN, &
+                                       CAT_EXTENSION]
+    integer :: i
+
+    xs = hall_exhibits()
+    call check(size(xs) == 6, 'SIX EXHIBITS STAND IN THE HALL REGISTRY')
+    do i = 1, size(xs)
+      call check(exists(xs(i)%old_file) .and. exists(xs(i)%modern_file), &
+                 'HALL SCROLLS EXIST: ' // xs(i)%id)
+      call run_probe(xs(i)%old_file, v)
+      call check(v%ok, 'THE PROBE RETURNS: ' // xs(i)%id)
+      call check(v%category == EXPECT(i), &
+                 'THE TESTIMONY CATEGORY IS TRUE: ' // xs(i)%id)
+      if (EXPECT(i) /= CAT_CLEAN) then
+        call check(len(v%evidence) > 0 .and. index(v%evidence, ' at (') == 0, &
+                   'THE EVIDENCE IS NORMALIZED: ' // xs(i)%id)
+      end if
+      call run_probe(xs(i)%modern_file, v)
+      call check(v%ok .and. v%category == CAT_CLEAN, &
+                 'THE MODERN READING IS CLEAN: ' // xs(i)%id)
+    end do
+    call check_str(normalize_diag('C:\x\y.f:6:13:  Warning: Obsolescent ' // &
+                   'feature: Computed GOTO at (1)'), &
+                   'Warning: Obsolescent feature: Computed GOTO', &
+                   'DIAGNOSTICS SHED THEIR COORDINATES')
+    call check(category_text(CAT_REJECTED) == 'REJECTED OUTRIGHT', &
+               'THE FOURTH FATE HAS ITS NAME')
+    call check(.not. exists('state.mod'), &
+               'THE PROBES LEFT NO DROPPINGS AT THE ROOT')
+  end subroutine trial_hall_probes
+
+  subroutine trial_hall_page()
+    character(:), allocatable :: page, sources, u
+    type(string_t), allocatable :: urls(:), srclines(:)
+    type(hall_exhibit_t), allocatable :: xs(:)
+    integer :: i, j
+    logical :: ok_all
+
+    page = slurp_file('dist\hall-of-deprecated-syntax.html')
+    call check(count_substr(page, 'id="hall-legend"') == 1, &
+               'THE FIVE FATES ARE TAUGHT ON THE PAGE')
+    xs = hall_exhibits()
+    do i = 1, size(xs)
+      call check(count_substr(page, 'id="hall-' // xs(i)%id // '"') == 1, &
+                 'THE PAGE HOLDS EXHIBIT ' // xs(i)%id)
+    end do
+    call check(count_substr(page, 'ACCEPTED CLEANLY UNDER -std=f2018') >= 6, &
+               'CLEAN TESTIMONY APPEARS FOR EVERY MODERN READING')
+    call check(count_substr(page, 'REJECTED UNDER -std=f2018') >= 3, &
+               'THE EXTENSION TESTIMONY APPEARS THRICE')
+    call check(count_substr(page, 'ACCEPTED WITH WARNING UNDER -std=f2018') >= 2, &
+               'THE OBSOLESCENT TESTIMONY APPEARS TWICE')
+    call check(count_substr(page, 'href="testaments.html"') >= 1 .and. &
+               count_substr(page, 'href="why-it-still-stands.html"') >= 1, &
+               'THE HALL POINTS TO ITS SIBLING WINGS')
+    call read_all_lines('content\hall-of-deprecated-syntax\SOURCES.md', srclines)
+    sources = ''
+    do i = 1, size(srclines)
+      sources = sources // srclines(i)%s // achar(10)
+    end do
+    call extract_hrefs(page, urls)
+    ok_all = .true.
+    do j = 1, size(urls)
+      u = urls(j)%s
+      if (index(u, '://') == 0) cycle
+      if (count_substr(sources, u) < 1) ok_all = .false.
+    end do
+    call check(ok_all, 'EVERY EXTERNAL LINK OF THE HALL STANDS IN ITS RECORD')
+  end subroutine trial_hall_page
+
+  subroutine trial_tape_measure()
+    type(string_t), allocatable :: hl(:), out(:), failures(:), report(:)
+    type(measure_t) :: m
+    type(route_t), allocatable :: rs(:)
+    type(run_result) :: rr
+    character(:), allocatable :: doc, cmd
+    integer :: i, n_checks
+
+    call harness_lines('file:///C:/x/dist/index.html', 375, hl)
+    doc = ''
+    do i = 1, size(hl)
+      doc = doc // hl(i)%s // achar(10)
+    end do
+    call check(index(doc, 'width:375px') > 0, 'THE HARNESS SETS THE VIEWPORT')
+    call check(index(doc, 'file:///C:/x/dist/index.html') > 0, &
+               'THE HARNESS AIMS AT THE TARGET')
+    call check(index(doc, 'FORTY-MEASURE-BEGIN') > 0, &
+               'THE HARNESS SPEAKS THE MEASUREMENT TONGUE')
+
+    cmd = browser_command('C:\Program Files\Edge\msedge.exe', &
+                          'file:///C:/h.html', 'C:\p')
+    call check(index(cmd, '--headless=new') > 0 .and. &
+               index(cmd, '--dump-dom') > 0 .and. &
+               index(cmd, '--virtual-time-budget') > 0, &
+               'THE SUMMONS CARRIES THE OFFICIAL FLAGS')
+    call check(starts_with(cmd, 'call "') .and. &
+               cmd(len(cmd):len(cmd)) == '"', &
+               'THE SUMMONS WEARS THE CALL PREFIX AGAINST QUOTE-STRIPPING')
+
+    call check_str(path_to_url('C:\A B\dist\x.html'), &
+                   'file:///C:/A%20B/dist/x.html', 'PATHS BECOME URLS')
+
+    allocate (out(6))
+    out(1)%s = 'noise before'
+    out(2)%s = 'FORTY-MEASURE-BEGIN'
+    out(3)%s = 'OK: YES'
+    out(4)%s = 'SCROLLW: 375'
+    out(5)%s = 'OVERFLOW: NO'
+    out(6)%s = 'FORTY-MEASURE-END'
+    call parse_measure(out, m)
+    call check(m%ok .and. m%scrollw == 375 .and. .not. m%overflow, &
+               'A GOOD MEASUREMENT IS READ')
+    ! The dumped page also carries the harness's own script source,
+    ! where both markers share one line; the tape must not read it.
+    deallocate (out); allocate (out(7))
+    out(1)%s = '<pre id="out">FORTY-MEASURE-BEGIN'
+    out(2)%s = 'OK: YES'
+    out(3)%s = 'SCROLLW: 740'
+    out(4)%s = 'FORTY-MEASURE-END</pre>'
+    out(5)%s = '<script>'
+    out(6)%s = 'function emit(s){x.textContent="FORTY-MEASURE-BEGIN\n"' // &
+               '+s+"\nFORTY-MEASURE-END";}'
+    out(7)%s = '</script>'
+    call parse_measure(out, m)
+    call check(m%ok .and. m%scrollw == 740, &
+               'THE SCRIPT''S OWN SCRIPTURE DOES NOT CONFUSE THE TAPE')
+    deallocate (out); allocate (out(1))
+    out(1)%s = 'no markers here'
+    call parse_measure(out, m)
+    call check(.not. m%ok .and. index(m%errmsg, 'NO MEASUREMENT') > 0, &
+               'A MISSING MEASUREMENT IS NOT INVENTED')
+    deallocate (out); allocate (out(4))
+    out(1)%s = 'FORTY-MEASURE-BEGIN'
+    out(2)%s = 'OK: NO'
+    out(3)%s = 'ERR: TIMEOUT'
+    out(4)%s = 'FORTY-MEASURE-END'
+    call parse_measure(out, m)
+    call check(.not. m%ok .and. m%errmsg == 'TIMEOUT', &
+               'A FAILED MEASUREMENT CONFESSES ITS REASON')
+
+    rs = routes()
+    call good_measure(m, rs(1), 375)
+    allocate (failures(0))
+    n_checks = 0
+    call judge_page(m, rs(1), 375, size(rs), 0, 0, n_checks, failures)
+    call check(size(failures) == 0 .and. n_checks >= 12, &
+               'A SOUND PAGE PASSES EVERY MEASUREMENT')
+    call good_measure(m, rs(1), 375)
+    m%overflow = .true.
+    deallocate (failures); allocate (failures(0)); n_checks = 0
+    call judge_page(m, rs(1), 375, size(rs), 0, 0, n_checks, failures)
+    call check(size(failures) == 1, 'OVERFLOW IS A FAULT AND IS COUNTED')
+    call good_measure(m, rs(1), 375)
+    m%marker = ''
+    deallocate (failures); allocate (failures(0)); n_checks = 0
+    call judge_page(m, rs(1), 375, size(rs), 0, 0, n_checks, failures)
+    call check(size(failures) == 1, 'A MISSING MARK IS A FAULT')
+    call good_measure(m, rs(1), 375)
+    m%links = 'ghost.html'
+    deallocate (failures); allocate (failures(0)); n_checks = 0
+    call judge_page(m, rs(1), 375, size(rs), 0, 0, n_checks, failures)
+    call check(size(failures) == 1, 'A DOOR TO NOWHERE IS A FAULT')
+
+    call good_measure(m, rs(1), 375)
+    deallocate (failures); allocate (failures(0)); n_checks = 0
+    call judge_page(m, rs(1), 375, size(rs), 0, 0, n_checks, failures)
+    call render_inspection('trial', 1, n_checks, failures, report)
+    doc = ''
+    do i = 1, size(report)
+      doc = doc // report(i)%s // achar(10)
+    end do
+    call check(index(doc, 'THE FABRIC HAS BEEN MEASURED.') > 0 .and. &
+               index(doc, 'FAULTS: 0') > 0, &
+               'THE TAPE RENDERS ITS PROCLAMATION')
+
+    rr = run_cmd('call "C:\no\such\browser.exe" --dump-dom "x"')
+    call check(rr%launched .and. rr%exit_code /= 0, &
+               'A MISSING BROWSER FAILS HONESTLY')
+  end subroutine trial_tape_measure
+
+  subroutine good_measure(m, rt, width)
+    type(measure_t), intent(out) :: m
+    type(route_t), intent(in) :: rt
+    integer, intent(in) :: width
+    m%ok = .true.
+    m%errmsg = ''
+    m%title = rt%title
+    m%scrollw = width - 15
+    m%clientw = width - 15
+    m%overflow = .false.
+    m%sheets = 2
+    m%sheetrules = '2,58'
+    m%nav = 6
+    m%active = rt%nav
+    m%marker = 'FORTY 0.7.0'
+    m%svgs = 0
+    m%tables = 0
+    m%pres = 2
+    m%pres_contained = .true.
+    m%h1 = rt%title
+    if (width <= 600) then
+      m%fontsize = '16px'
+    else
+      m%fontsize = '17px'
+    end if
+    m%links = 'why-it-still-stands.html|testaments.html'
+  end subroutine good_measure
 
   subroutine trial_rebuild_from_nothing()
     type(run_result) :: rr

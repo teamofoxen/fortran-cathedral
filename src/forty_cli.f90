@@ -10,7 +10,7 @@ module forty_cli
   public :: CMD_NONE, CMD_HELP, CMD_VERSION, CMD_STATUS, CMD_DOCTOR, CMD_BUILD
   public :: CMD_TEST, CMD_CONFESS, CMD_CLEAN, CMD_GITHUB, CMD_UNKNOWN
   public :: CMD_GENERATE, CMD_VALIDATE, CMD_OPEN, CMD_OFFER, CMD_ATONE, CMD_AUDIT
-  public :: CMD_DEPLOY
+  public :: CMD_DEPLOY, CMD_INSPECT
   public :: SUB_NONE, SUB_STATUS, SUB_CONNECT, SUB_VERIFY, SUB_UNKNOWN
   public :: valid_repo_name, valid_owner_name, valid_description, valid_visibility
   public :: valid_commit_message
@@ -21,7 +21,7 @@ module forty_cli
   integer, parameter :: CMD_GITHUB = 9, CMD_UNKNOWN = 99
   integer, parameter :: CMD_GENERATE = 11, CMD_VALIDATE = 12, CMD_OPEN = 13
   integer, parameter :: CMD_OFFER = 14, CMD_ATONE = 15, CMD_AUDIT = 16
-  integer, parameter :: CMD_DEPLOY = 17
+  integer, parameter :: CMD_DEPLOY = 17, CMD_INSPECT = 18
   integer, parameter :: SUB_NONE = 0, SUB_STATUS = 1, SUB_CONNECT = 2
   integer, parameter :: SUB_VERIFY = 3, SUB_UNKNOWN = 99
 
@@ -82,6 +82,7 @@ contains
     case ('atone');    cli%command = CMD_ATONE
     case ('audit');    cli%command = CMD_AUDIT
     case ('deploy');   cli%command = CMD_DEPLOY
+    case ('inspect');  cli%command = CMD_INSPECT
     case default
       cli%command = CMD_UNKNOWN
       cli%errmsg = 'UNKNOWN COMMAND: ' // argv(1)%s
@@ -122,6 +123,15 @@ contains
       end if
       cli%rite = to_lower(argv(2)%s)
       i = 3
+    end if
+
+    if (cli%command == CMD_INSPECT) then
+      if (size(argv) >= 2) then
+        if (.not. starts_with(argv(2)%s, '--')) then
+          cli%rite = to_lower(argv(2)%s)
+          i = 3
+        end if
+      end if
     end if
 
     do while (i <= size(argv))
