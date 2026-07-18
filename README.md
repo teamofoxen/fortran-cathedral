@@ -6,11 +6,8 @@ Fortran Cathedral is a real educational website about Fortran, built with an
 aggressively unnecessary amount of Fortran. The absurdity is intentional.
 The craftsmanship is not.
 
-The site exists and is generated entirely by Fortran: routing, page
-assembly, navigation, escaping, the stylesheet and its design tokens, a
-rose window placed by sine and cosine, the sitemap, the robots.txt, and
-the route manifest. `forty generate` raises it into `dist\`; open
-`dist\index.html` in any browser. No server. No JavaScript.
+The website does not exist yet. Its operator does. This is by design:
+**Phase 0 ordains the verger before the first stone of the nave is laid.**
 
 ## Forty
 
@@ -26,12 +23,7 @@ forty status              THE STATE OF THE CATHEDRAL.
 forty build               COMPILE VIA FPM. BLESS A STAMP.
 forty test                RUN THE TRIALS VIA FPM.
 forty confess             MEASURE HERESY. AUDIT THE LEDGER.
-forty generate            RAISE THE SITE INTO dist\.
-forty validate            SURVEY THE RAISED FABRIC.
-forty open                OPEN THE PORCH IN YOUR BROWSER.
-forty offer               COMMIT AND PUSH THROUGH FORTY. ONE CONFIRMATION.
-forty atone <rite>        THE RITE OF RESTITUTION. FORWARD-ONLY. NO ERASURE.
-forty clean               SWEEP build\ AND dist\. ASKS FIRST.
+forty clean               SWEEP build\. ASKS FIRST.
 forty github status       REPORT THE GATEHOUSE.
 forty github connect      THE CONSECRATION RITE. ONE CONFIRMATION.
 forty github verify       CONFIRM THE REMOTE IS CANONICAL.
@@ -87,25 +79,15 @@ Read, in order: [CLAUDE.md](CLAUDE.md), [VISION.md](VISION.md),
 
 ## Status
 
-Phase 1 complete: **the smallest real cathedral stands.**
+Phase 0 complete: **Forty is ordained.**
 
-- Phase 0 ordained Forty; the repository was consecrated to GitHub through
-  him, and through no other door.
-- Phase 1 raised the site: two pages — the Nave and a public Confessional
-  whose measurements are taken by Forty at generation time — plus every
-  asset, all emitted by Fortran into ignored ground (`dist\`).
-- 21 library modules, 1 program, 1 trial file. All Fortran.
-- 111 trials passing. 33 validator checks upheld. Deterministic output.
-- Executable heresy: 0 lines, enforced by trial and by a validator that
-  refuses any script tag in the porch.
+- 12 library modules, 1 program, 1 trial file. All Fortran.
+- 83 trials passing.
+- Git: uninitiated. The ground awaits consecration through
+  `forty github connect`, and through no other door.
 
-Phase 1.1 ordained the Offering Rite: routine commits and pushes now pass
-through `forty offer` — inspection, residue refusal, one confirmation,
-halt-on-failure, and accord verification, all owned by Fortran. The manual
-Phase 1 commit that preceded this rite is permanently recorded in the
-ledger's operational chapter and displayed in the public Confessional.
-
-Further wings — the Book of BLAS, the Hall of Deprecated Syntax, the
-Saints of Numerical Computing — await their phases.
+Phase 1 — the smallest real cathedral: a Fortran static-site generator, three
+pages, and a Confessional rendered from Forty's own measurements — awaits
+authorization.
 
 > THE LANGUAGE IS OLD. THE ARRAYS REMAIN CONTIGUOUS.

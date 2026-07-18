@@ -18,7 +18,7 @@ module forty_github
                          EXIT_EXTERNAL, EXIT_DECLINED
   implicit none
   private
-  public :: plan_step_t, build_connect_plan, parse_login, push_step
+  public :: plan_step_t, build_connect_plan, parse_login
   public :: github_status, github_connect, github_verify
 
   type :: plan_step_t

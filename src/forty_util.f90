@@ -4,7 +4,7 @@ module forty_util
   private
   public :: string_t, push_string
   public :: to_lower, to_upper, starts_with, trim_cr, int_to_str
-  public :: basename, extension_of, count_nonblank, count_substr
+  public :: basename, extension_of, count_nonblank
 
   !> A single owned string. Fortran's answer to a very old question.
   type :: string_t
@@ -128,21 +128,5 @@ contains
       end if
     end do
   end function count_nonblank
-
-  !> Non-overlapping occurrences of sub within s.
-  pure function count_substr(s, sub) result(n)
-    character(*), intent(in) :: s, sub
-    integer :: n, p, start
-    n = 0
-    if (len(sub) == 0) return
-    start = 1
-    do
-      if (start > len(s)) exit
-      p = index(s(start:), sub)
-      if (p == 0) exit
-      n = n + 1
-      start = start + p - 1 + len(sub)
-    end do
-  end function count_substr
 
 end module forty_util
