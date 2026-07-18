@@ -50,8 +50,10 @@ program test_forty
                        delete_file, version_line
   use forty_confess, only: classify, ledger_entries, transgression_t, &
                            ledger_transgressions, split_cells, &
-                           expiation_t, ledger_expiation, &
+                           expiation_t, ledger_expiation, list_repo_files, &
                            CLASS_FORTRAN, CLASS_DECLARATIVE, CLASS_HERESY, CLASS_OTHER
+  use cathedral_highlight, only: highlight_line
+  use cathedral_testaments, only: verse_t, verses
   use forty_offer, only: build_offer_plan, check_offer_ground, &
                          categorize_porcelain, offering_acceptable, &
                          porcelain_path, run_offer
@@ -90,6 +92,10 @@ program test_forty
   call trial_site_generation()
   call trial_determinism()
   call trial_validator_teeth()
+  call trial_highlighter()
+  call trial_testaments()
+  call trial_html_purity()
+  call trial_rebuild_from_nothing()
   call trial_transgressions()
   call trial_commit_messages()
   call trial_offer_plan()
@@ -527,10 +533,11 @@ contains
     character(:), allocatable :: doc
     integer :: i
     rs = routes()
-    call check(size(rs) == 2, 'TWO ROUTES STAND IN THE REGISTRY')
-    if (size(rs) == 2) then
+    call check(size(rs) == 3, 'THREE ROUTES STAND IN THE REGISTRY')
+    if (size(rs) == 3) then
       call check_str(rs(1)%file, 'index.html', 'THE NAVE IS THE INDEX')
-      call check_str(rs(2)%file, 'confessional.html', 'THE CONFESSIONAL HAS ITS DOOR')
+      call check_str(rs(2)%file, 'testaments.html', 'THE TESTAMENTS HAVE THEIR DOOR')
+      call check_str(rs(3)%file, 'confessional.html', 'THE CONFESSIONAL HAS ITS DOOR')
     end if
     allocate (nav(0))
     call append_nav(nav, 'nave')
@@ -583,8 +590,9 @@ contains
 
   subroutine trial_determinism()
     type(string_t), allocatable :: first(:), second(:)
-    character(24), parameter :: works(4) = [character(24) :: &
+    character(24), parameter :: works(5) = [character(24) :: &
       'dist\index.html', 'dist\confessional.html', &
+      'dist\testaments.html', &
       'dist\assets\ornament.svg', 'dist\routes.json']
     integer :: code, w, i
     logical :: same
@@ -617,6 +625,101 @@ contains
     call set_muted(.false.)
     call check(code == 0, 'REGENERATION HEALS THE BREACH')
   end subroutine trial_validator_teeth
+
+  subroutine trial_highlighter()
+    character(:), allocatable :: h
+    h = highlight_line('C     A FIXED-FORM SERMON', .true.)
+    call check(index(h, '<span class="hl-c">') == 1, &
+               'COLUMN ONE CONSECRATES THE FIXED LINE')
+    h = highlight_line('  print *, ''pilgrim''  ! greet', .false.)
+    call check(index(h, '<span class="hl-k">print</span>') > 0, &
+               'KEYWORDS RECEIVE THEIR VESTMENTS')
+    call check(index(h, '<span class="hl-s">&#39;pilgrim&#39;</span>') > 0, &
+               'STRINGS ARE ROBED AND ESCAPED')
+    call check(index(h, '<span class="hl-c">! greet</span>') > 0, &
+               'TRAILING COMMENTS ARE DIMMED')
+    h = highlight_line('x = 42.5', .false.)
+    call check(index(h, '<span class="hl-n">42.5</span>') > 0, &
+               'NUMBERS ARE COUNTED')
+    h = highlight_line('s = ''<script>alert(1)</script>''', .false.)
+    call check(index(h, '<script') == 0, 'NO RAW SCRIPT ESCAPES THE EXHIBIT')
+    call check(index(h, '&lt;script&gt;') > 0, 'THE HOSTILE TEXT IS ENTOMBED')
+  end subroutine trial_highlighter
+
+  subroutine trial_testaments()
+    type(verse_t), allocatable :: vs(:)
+    type(run_result) :: rr
+    character(:), allocatable :: page, nave, broken
+    type(string_t), allocatable :: blines(:)
+    logical :: ok
+    integer :: v
+
+    vs = verses()
+    call check(size(vs) == 5, 'FIVE VERSES STAND IN THE REGISTRY')
+    do v = 1, size(vs)
+      call check(exists(vs(v)%old_file) .and. exists(vs(v)%new_file), &
+                 'BOTH SCROLLS EXIST: ' // vs(v)%id)
+      rr = run_cmd('gfortran -fsyntax-only ' // quote(vs(v)%old_file))
+      call check(rr%exit_code == 0, 'THE OLD SCROLL COMPILES: ' // vs(v)%id)
+      rr = run_cmd('gfortran -fsyntax-only ' // quote(vs(v)%new_file))
+      call check(rr%exit_code == 0, 'THE NEW SCROLL COMPILES: ' // vs(v)%id)
+    end do
+
+    page = slurp_file('dist\testaments.html')
+    do v = 1, size(vs)
+      call check(count_substr(page, 'id="verse-' // vs(v)%id // '"') == 1, &
+                 'THE PAGE HOLDS VERSE ' // vs(v)%id)
+    end do
+    call check(count_substr(page, '<meta name="generator" content="FORTY ') == 1, &
+               'THE TESTAMENTS BEAR THE VERGER''S MARK')
+    call check(count_substr(page, 'class="timeline"') == 1, &
+               'THE LIVING STANDARD IS CHARTED')
+    nave = slurp_file('dist\index.html')
+    call check(count_substr(nave, 'href="testaments.html"') >= 1, &
+               'THE NAVE POINTS TO THE TESTAMENTS')
+
+    broken = temp_root() // '\forty_broken_verse.f90'
+    allocate (blines(3))
+    blines(1)%s = 'program broken'
+    blines(2)%s = '  this is not fortran at all'
+    blines(3)%s = 'end program broken'
+    call write_lines(broken, blines, ok)
+    rr = run_cmd('gfortran -fsyntax-only ' // quote(broken))
+    call check(rr%exit_code /= 0, 'A BROKEN VERSE IS REFUSED BY THE COMPILER')
+    call delete_file(broken)
+  end subroutine trial_testaments
+
+  subroutine trial_html_purity()
+    type(string_t), allocatable :: files(:)
+    logical :: ok, pure_tree
+    integer :: i
+    call list_repo_files(files, ok)
+    call check(ok, 'THE GROUNDS CAN BE WALKED FOR THE DOCTRINE')
+    pure_tree = .true.
+    do i = 1, size(files)
+      if (len(files(i)%s) >= 5) then
+        if (to_lower(files(i)%s(len(files(i)%s) - 4:)) == '.html') then
+          pure_tree = .false.
+        end if
+      end if
+    end do
+    call check(pure_tree, 'NO HANDWRITTEN HTML STANDS IN THE SOURCE TREE')
+  end subroutine trial_html_purity
+
+  subroutine trial_rebuild_from_nothing()
+    type(run_result) :: rr
+    integer :: code
+    rr = run_cmd('rmdir /s /q dist')
+    call check(.not. exists('dist\index.html'), 'THE PORCH IS RAZED FOR THE TRIAL')
+    call set_muted(.true.)
+    call run_generate(code)
+    call set_muted(.false.)
+    call check(code == 0, 'THE CATHEDRAL RISES FROM NOTHING')
+    call set_muted(.true.)
+    call run_validate(code)
+    call set_muted(.false.)
+    call check(code == 0, 'AND IS FOUND SOUND, REPRODUCED BY FORTRAN ALONE')
+  end subroutine trial_rebuild_from_nothing
 
   ! ------------------------------------------------ the restitution trials
 

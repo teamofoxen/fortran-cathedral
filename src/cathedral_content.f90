@@ -11,6 +11,7 @@ module cathedral_content
   use forty_util, only: string_t, push_string, int_to_str
   use cathedral_html, only: escape_html
   use cathedral_facts, only: build_facts_t
+  use cathedral_testaments, only: testaments_body
   implicit none
   private
   public :: page_body
@@ -27,6 +28,8 @@ contains
     select case (slug)
     case ('nave')
       call nave_body(facts, body)
+    case ('testaments')
+      call testaments_body(body, known)
     case ('confessional')
       call confessional_body(facts, body)
     case default
@@ -84,12 +87,15 @@ contains
     call trim_cr_exhibit(body)
 
     call h2(body, 'What stands so far')
-    call para(body, 'This is the smallest real cathedral: a nave, a confessional, ' // &
-      'and the machinery that raised them. Fortran owns the routing, the page ' // &
-      'assembly, the navigation, the stylesheet and its design tokens, the rose ' // &
-      'window, the sitemap, the robots.txt, and the route manifest. Further ' // &
-      'wings — the Book of BLAS, the Hall of Deprecated Syntax, the Saints of ' // &
-      'Numerical Computing — await their phases.')
+    call para(body, 'This began as the smallest real cathedral: a nave, a ' // &
+      'confessional, and the machinery that raised them. Fortran owns the ' // &
+      'routing, the page assembly, the navigation, the stylesheet and its ' // &
+      'design tokens, the rose window, the sitemap, the robots.txt, and the ' // &
+      'route manifest. The first wing now stands: ' // &
+      '<a href="testaments.html">Old Testament / Modern Testament</a>, where ' // &
+      'fixed-form and modern Fortran are read side by side and every exhibit ' // &
+      'compiles. Further wings — the Book of BLAS, the Hall of Deprecated ' // &
+      'Syntax, the Saints of Numerical Computing — await their phases.')
     call para(body, 'The full accounting of this site&#39;s purity is public, in ' // &
       'the <a href="confessional.html">Confessional</a>.')
   end subroutine nave_body

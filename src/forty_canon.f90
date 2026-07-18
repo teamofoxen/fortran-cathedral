@@ -7,7 +7,7 @@ module forty_canon
   public :: CANON_COMMIT_MSG, CANON_COMMIT_TRAILER, CANON_OFFENDING_COMMIT
   public :: EXIT_OK, EXIT_FAIL, EXIT_USAGE, EXIT_ENV, EXIT_EXTERNAL, EXIT_DECLINED
 
-  character(*), parameter :: FORTY_VERSION = '0.2.2'
+  character(*), parameter :: FORTY_VERSION = '0.3.0'
 
   !> The intended canonical home of the generated site. Deployment is a
   !> later phase; the sitemap and robots.txt speak of this address in

@@ -103,7 +103,17 @@ Phase 1.1 ordained the Offering Rite: routine commits and pushes now pass
 through `forty offer` — inspection, residue refusal, one confirmation,
 halt-on-failure, and accord verification, all owned by Fortran. The manual
 Phase 1 commit that preceded this rite is permanently recorded in the
-ledger's operational chapter and displayed in the public Confessional.
+ledger's operational chapter, displayed in the public Confessional, and —
+after Phase 1.2's forward-only Rite of Restitution — stands EXPIATED, NOT
+ERASED.
+
+Phase 2 opened the first wing: **Old Testament / Modern Testament** —
+five paired exhibits of fixed-form and modern Fortran, read from real
+source files under `content/testaments/`, dressed by a Fortran syntax
+highlighter, and syntax-checked by GFortran during `forty validate`.
+Every verse compiles. The validator now also enforces the generation
+doctrine: no handwritten HTML in the source tree, every page named in the
+Fortran route registry, every page bearing the verger's generation mark.
 
 Further wings — the Book of BLAS, the Hall of Deprecated Syntax, the
 Saints of Numerical Computing — await their phases.
