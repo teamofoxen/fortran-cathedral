@@ -83,6 +83,12 @@ contains
       call verdict('BUILD.', 'NO BUILD HAS BEEN BLESSED.')
     end if
 
+    if (file_exists('dist\index.html')) then
+      call verdict('SITE.', 'GENERATED. THE PORCH IS dist\index.html.')
+    else
+      call verdict('SITE.', 'NOT YET GENERATED. RAISE IT: forty generate')
+    end if
+
     call blank()
     call say('THE CATHEDRAL STANDS.')
     exit_code = EXIT_OK

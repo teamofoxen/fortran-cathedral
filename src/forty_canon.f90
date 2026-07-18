@@ -3,11 +3,17 @@
 module forty_canon
   implicit none
   private
-  public :: FORTY_VERSION, CANON_REPO_NAME, CANON_DESCRIPTION
+  public :: FORTY_VERSION, CANON_REPO_NAME, CANON_DESCRIPTION, CANON_BASE_URL
   public :: CANON_COMMIT_MSG, CANON_COMMIT_TRAILER
   public :: EXIT_OK, EXIT_FAIL, EXIT_USAGE, EXIT_ENV, EXIT_EXTERNAL, EXIT_DECLINED
 
-  character(*), parameter :: FORTY_VERSION = '0.1.0'
+  character(*), parameter :: FORTY_VERSION = '0.2.0'
+
+  !> The intended canonical home of the generated site. Deployment is a
+  !> later phase; the sitemap and robots.txt speak of this address in
+  !> anticipation, which the Confessional does not conceal.
+  character(*), parameter :: CANON_BASE_URL = &
+    'https://teamofoxen.github.io/fortran-cathedral'
 
   character(*), parameter :: CANON_REPO_NAME = 'fortran-cathedral'
   character(*), parameter :: CANON_DESCRIPTION = &

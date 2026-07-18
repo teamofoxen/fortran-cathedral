@@ -12,6 +12,8 @@ program forty
   use forty_buildops, only: run_build, run_test, run_clean
   use forty_confess, only: run_confess
   use forty_github, only: github_status, github_connect, github_verify
+  use cathedral_generate, only: run_generate, run_open
+  use cathedral_validate, only: run_validate
   implicit none
 
   type(string_t), allocatable :: argv(:)
@@ -37,7 +39,8 @@ program forty
   ! Forty serves one building. Commands that touch it must be spoken
   ! from its root. The doctor and the help desk see visitors anywhere.
   select case (cli%command)
-  case (CMD_STATUS, CMD_BUILD, CMD_TEST, CMD_CONFESS, CMD_CLEAN, CMD_GITHUB)
+  case (CMD_STATUS, CMD_BUILD, CMD_TEST, CMD_CONFESS, CMD_CLEAN, CMD_GITHUB, &
+        CMD_GENERATE, CMD_VALIDATE, CMD_OPEN)
     if (.not. in_cathedral_root()) then
       call lament('FORTY SERVES ONE CATHEDRAL. INVOKE HIM FROM ITS ROOT')
       call say('(THE DIRECTORY HOLDING CLAUDE.md, FORTY.md, AND fpm.toml).')
@@ -55,6 +58,9 @@ program forty
   case (CMD_TEST);    call run_test(code)
   case (CMD_CONFESS); call run_confess(code)
   case (CMD_CLEAN);   call run_clean(cli%assume_yes, code)
+  case (CMD_GENERATE); call run_generate(code)
+  case (CMD_VALIDATE); call run_validate(code)
+  case (CMD_OPEN);     call run_open(code)
   case (CMD_GITHUB)
     select case (cli%subcommand)
     case (SUB_STATUS);  call github_status(code)
@@ -79,7 +85,10 @@ contains
     call say('  build               COMPILE VIA FPM. BLESS A STAMP.')
     call say('  test                RUN THE TRIALS VIA FPM.')
     call say('  confess             MEASURE HERESY. AUDIT THE LEDGER.')
-    call say('  clean               SWEEP build\. ASKS FIRST.')
+    call say('  generate            RAISE THE SITE INTO dist\.')
+    call say('  validate            SURVEY THE RAISED FABRIC.')
+    call say('  open                OPEN THE PORCH IN YOUR BROWSER.')
+    call say('  clean               SWEEP build\ AND dist\. ASKS FIRST.')
     call say('  github status       REPORT THE GATEHOUSE.')
     call say('  github connect      THE CONSECRATION RITE. ONE CONFIRMATION.')
     call say('  github verify       CONFIRM THE REMOTE IS CANONICAL.')

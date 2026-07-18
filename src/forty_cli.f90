@@ -9,6 +9,7 @@ module forty_cli
   public :: cli_t, parse_cli
   public :: CMD_NONE, CMD_HELP, CMD_VERSION, CMD_STATUS, CMD_DOCTOR, CMD_BUILD
   public :: CMD_TEST, CMD_CONFESS, CMD_CLEAN, CMD_GITHUB, CMD_UNKNOWN
+  public :: CMD_GENERATE, CMD_VALIDATE, CMD_OPEN
   public :: SUB_NONE, SUB_STATUS, SUB_CONNECT, SUB_VERIFY, SUB_UNKNOWN
   public :: valid_repo_name, valid_owner_name, valid_description, valid_visibility
 
@@ -16,6 +17,7 @@ module forty_cli
   integer, parameter :: CMD_STATUS = 3, CMD_DOCTOR = 4, CMD_BUILD = 5
   integer, parameter :: CMD_TEST = 6, CMD_CONFESS = 7, CMD_CLEAN = 8
   integer, parameter :: CMD_GITHUB = 9, CMD_UNKNOWN = 99
+  integer, parameter :: CMD_GENERATE = 11, CMD_VALIDATE = 12, CMD_OPEN = 13
   integer, parameter :: SUB_NONE = 0, SUB_STATUS = 1, SUB_CONNECT = 2
   integer, parameter :: SUB_VERIFY = 3, SUB_UNKNOWN = 99
 
@@ -65,6 +67,9 @@ contains
     case ('confess'); cli%command = CMD_CONFESS
     case ('clean');   cli%command = CMD_CLEAN
     case ('github');  cli%command = CMD_GITHUB
+    case ('generate'); cli%command = CMD_GENERATE
+    case ('validate'); cli%command = CMD_VALIDATE
+    case ('open');     cli%command = CMD_OPEN
     case default
       cli%command = CMD_UNKNOWN
       cli%errmsg = 'UNKNOWN COMMAND: ' // argv(1)%s

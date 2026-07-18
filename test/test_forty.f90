@@ -51,7 +51,13 @@ program test_forty
                            CLASS_FORTRAN, CLASS_DECLARATIVE, CLASS_HERESY, CLASS_OTHER
   use forty_git, only: slug_from_url, valid_slug
   use forty_github, only: plan_step_t, build_connect_plan, parse_login
-  use forty_canon, only: CANON_DESCRIPTION
+  use forty_canon, only: CANON_DESCRIPTION, CANON_BASE_URL
+  use forty_ui, only: set_muted
+  use forty_buildops, only: dir_present
+  use cathedral_html, only: escape_html, escape_json
+  use cathedral_routes, only: route_t, routes, append_nav
+  use cathedral_generate, only: run_generate
+  use cathedral_validate, only: run_validate
   implicit none
 
   call trial_parse()
@@ -64,6 +70,13 @@ program test_forty
   call trial_plan()
   call trial_login()
   call trial_run_discipline()
+  call trial_escaping()
+  call trial_dir_present()
+  call trial_count_substr()
+  call trial_routes_and_nav()
+  call trial_site_generation()
+  call trial_determinism()
+  call trial_validator_teeth()
 
   call summary()
   if (n_fail > 0) call exit(1)
@@ -290,5 +303,138 @@ contains
     call check(rr%launched .and. rr%exit_code /= 0, &
                'FAILURE IS REPORTED, NOT CONCEALED')
   end subroutine trial_run_discipline
+
+  subroutine trial_escaping()
+    call check_str(escape_html('a<b & "c" ''d''>e'), &
+                   'a&lt;b &amp; &quot;c&quot; &#39;d&#39;&gt;e', &
+                   'THE FIVE PERILOUS CHARACTERS ARE ENTOMBED')
+    call check_str(escape_html('plain text'), 'plain text', &
+                   'INNOCENT TEXT PASSES UNTOUCHED')
+    call check_str(escape_json('say "x" to \y'), 'say \"x\" to \\y', &
+                   'JSON QUOTES AND SLASHES ARE BOUND')
+  end subroutine trial_escaping
+
+  subroutine trial_dir_present()
+    call check(dir_present('src'), 'A STANDING DIRECTORY IS SEEN')
+    call check(.not. dir_present('no_such_crypt_xyz'), &
+               'AN ABSENT DIRECTORY IS NOT IMAGINED')
+  end subroutine trial_dir_present
+
+  subroutine trial_count_substr()
+    call check(count_substr('abcabcab', 'abc') == 2, 'COUNTING IS EXACT')
+    call check(count_substr('aaaa', 'aa') == 2, 'COUNTING DOES NOT OVERLAP')
+    call check(count_substr('abc', 'xyz') == 0, 'ABSENCE COUNTS AS ZERO')
+    call check(count_substr('abc', '') == 0, 'EMPTINESS IS NOT COUNTED')
+  end subroutine trial_count_substr
+
+  subroutine trial_routes_and_nav()
+    type(route_t), allocatable :: rs(:)
+    type(string_t), allocatable :: nav(:)
+    character(:), allocatable :: doc
+    integer :: i
+    rs = routes()
+    call check(size(rs) == 2, 'TWO ROUTES STAND IN THE REGISTRY')
+    if (size(rs) == 2) then
+      call check_str(rs(1)%file, 'index.html', 'THE NAVE IS THE INDEX')
+      call check_str(rs(2)%file, 'confessional.html', 'THE CONFESSIONAL HAS ITS DOOR')
+    end if
+    allocate (nav(0))
+    call append_nav(nav, 'nave')
+    doc = ''
+    do i = 1, size(nav)
+      doc = doc // nav(i)%s // achar(10)
+    end do
+    call check(count_substr(doc, 'aria-current="page"') == 1, &
+               'ONE PLACE IS HELD IN THE NAV')
+    call check(count_substr(doc, 'href="index.html" aria-current') == 1, &
+               'THE HELD PLACE IS THE ACTIVE PAGE')
+    call check(count_substr(doc, 'href="confessional.html"') == 1, &
+               'THE OTHER DOOR IS OFFERED')
+  end subroutine trial_routes_and_nav
+
+  subroutine trial_site_generation()
+    integer :: code
+    type(string_t), allocatable :: lines(:)
+    character(:), allocatable :: doc
+    integer :: i
+    call set_muted(.true.)
+    call run_generate(code)
+    call set_muted(.false.)
+    call check(code == 0, 'THE CATHEDRAL RISES ON COMMAND')
+    call check(exists('dist\index.html') .and. exists('dist\confessional.html'), &
+               'BOTH PAGES STAND')
+    call check(exists('dist\assets\tokens.css') .and. &
+               exists('dist\assets\cathedral.css') .and. &
+               exists('dist\assets\ornament.svg') .and. &
+               exists('dist\robots.txt') .and. exists('dist\sitemap.xml') .and. &
+               exists('dist\routes.json'), 'ALL SIX WORKS ARE LAID')
+    doc = slurp_file('dist\index.html')
+    call check(count_substr(doc, 'n &gt; 0') >= 1, &
+               'THE CODE EXHIBIT IS ESCAPED IN REAL CONTENT')
+    call check(count_substr(to_lower(doc), '<script') == 0, &
+               'NO SCRIPT TAINTS THE NAVE')
+    doc = slurp_file('dist\sitemap.xml')
+    call check(count_substr(doc, CANON_BASE_URL // '/index.html') == 1, &
+               'THE MAP KNOWS THE NAVE')
+    call set_muted(.true.)
+    call run_validate(code)
+    call set_muted(.false.)
+    call check(code == 0, 'THE SURVEYOR FINDS THE FABRIC SOUND')
+  end subroutine trial_site_generation
+
+  subroutine trial_determinism()
+    type(string_t), allocatable :: first(:), second(:)
+    character(24), parameter :: works(4) = [character(24) :: &
+      'dist\index.html', 'dist\confessional.html', &
+      'dist\assets\ornament.svg', 'dist\routes.json']
+    integer :: code, w, i
+    logical :: same
+    do w = 1, size(works)
+      call read_all_lines(trim(works(w)), first)
+      call set_muted(.true.)
+      call run_generate(code)
+      call set_muted(.false.)
+      call read_all_lines(trim(works(w)), second)
+      same = (size(first) == size(second)) .and. (size(first) > 0)
+      if (same) then
+        do i = 1, size(first)
+          if (first(i)%s /= second(i)%s) same = .false.
+        end do
+      end if
+      call check(same, 'REGENERATION IS DETERMINISTIC: ' // trim(works(w)))
+    end do
+  end subroutine trial_determinism
+
+  subroutine trial_validator_teeth()
+    integer :: code
+    call delete_file('dist\robots.txt')
+    call set_muted(.true.)
+    call run_validate(code)
+    call set_muted(.false.)
+    call check(code /= 0, 'THE SURVEYOR REFUSES A BREACHED FABRIC')
+    call set_muted(.true.)
+    call run_generate(code)
+    call run_validate(code)
+    call set_muted(.false.)
+    call check(code == 0, 'REGENERATION HEALS THE BREACH')
+  end subroutine trial_validator_teeth
+
+  function exists(path) result(r)
+    character(*), intent(in) :: path
+    logical :: r
+    inquire (file=path, exist=r)
+  end function exists
+
+  function slurp_file(path) result(doc)
+    character(*), intent(in) :: path
+    character(:), allocatable :: doc
+    type(string_t), allocatable :: lines(:)
+    integer :: i
+    call read_all_lines(path, lines)
+    doc = ''
+    do i = 1, size(lines)
+      doc = doc // lines(i)%s // achar(10)
+    end do
+  end function slurp_file
 
 end program test_forty

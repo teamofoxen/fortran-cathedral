@@ -6,12 +6,21 @@ module forty_ui
   use forty_util, only: to_lower
   implicit none
   private
-  public :: say, verdict, lament, rule, blank, banner, confirm
+  public :: say, verdict, lament, rule, blank, banner, confirm, set_muted
+
+  !> The trials sometimes ask the verger to work in silence.
+  logical, save :: muted = .false.
 
 contains
 
+  subroutine set_muted(m)
+    logical, intent(in) :: m
+    muted = m
+  end subroutine set_muted
+
   subroutine say(text)
     character(*), intent(in) :: text
+    if (muted) return
     write (output_unit, '(a)') text
   end subroutine say
 
@@ -19,6 +28,7 @@ contains
   subroutine verdict(head, detail)
     character(*), intent(in) :: head, detail
     character(26) :: pad
+    if (muted) return
     if (len_trim(detail) == 0) then
       write (output_unit, '(a)') trim(head)
     else
@@ -29,14 +39,17 @@ contains
 
   subroutine lament(text)
     character(*), intent(in) :: text
+    if (muted) return
     write (error_unit, '(a)') 'FORTY: ' // text
   end subroutine lament
 
   subroutine rule()
+    if (muted) return
     write (output_unit, '(a)') repeat('-', 60)
   end subroutine rule
 
   subroutine blank()
+    if (muted) return
     write (output_unit, '(a)') ''
   end subroutine blank
 
