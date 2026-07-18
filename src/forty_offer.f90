@@ -81,27 +81,67 @@ contains
     end do
   end subroutine categorize_porcelain
 
-  !> Generated or operational residue may not enter an offering. If the
-  !> ignores have failed and the yards stand in the porcelain, the whole
-  !> offering is refused.
-  subroutine offering_acceptable(paths, ok, offending)
-    type(string_t), intent(in) :: paths(:)
+  !> Generated or operational residue may not ENTER an offering: not the
+  !> yards (build/, dist/), and not compiler droppings (.mod, .smod, .o,
+  !> .obj, .exe) wherever they fall. A deletion is judged differently:
+  !> removing residue is cleansing, and cleansing is always welcome.
+  subroutine offering_acceptable(porcelain, ok, offending)
+    type(string_t), intent(in) :: porcelain(:)
     logical, intent(out) :: ok
     character(:), allocatable, intent(out) :: offending
     integer :: i
+    character(2) :: xy
+    character(:), allocatable :: path
     ok = .true.
     offending = ''
-    do i = 1, size(paths)
-      if (starts_with(paths(i)%s, 'build/') .or. &
-          starts_with(paths(i)%s, 'dist/') .or. &
-          starts_with(paths(i)%s, 'build\') .or. &
-          starts_with(paths(i)%s, 'dist\')) then
+    do i = 1, size(porcelain)
+      if (len_trim(porcelain(i)%s) < 4) cycle
+      xy = porcelain(i)%s(1:2)
+      if (index(xy, 'D') > 0) cycle   ! departures cleanse; they do not defile
+      path = porcelain_path(porcelain(i)%s)
+      if (starts_with(path, 'build/') .or. starts_with(path, 'dist/') .or. &
+          starts_with(path, 'build\') .or. starts_with(path, 'dist\') .or. &
+          is_compiler_dropping(path)) then
         ok = .false.
-        offending = paths(i)%s
+        offending = path
         return
       end if
     end do
   end subroutine offering_acceptable
+
+  pure function is_compiler_dropping(path) result(r)
+    character(*), intent(in) :: path
+    logical :: r
+    r = ends_ci(path, '.mod') .or. ends_ci(path, '.smod') .or. &
+        ends_ci(path, '.o') .or. ends_ci(path, '.obj') .or. &
+        ends_ci(path, '.exe')
+  end function is_compiler_dropping
+
+  pure function ends_ci(s, suffix) result(r)
+    character(*), intent(in) :: s, suffix
+    logical :: r
+    integer :: n, m
+    n = len(s)
+    m = len(suffix)
+    r = .false.
+    if (n >= m) r = (lower_eq(s(n - m + 1:n), suffix))
+  end function ends_ci
+
+  pure function lower_eq(a, b) result(r)
+    character(*), intent(in) :: a, b
+    logical :: r
+    integer :: i, ca, cb
+    r = .false.
+    if (len(a) /= len(b)) return
+    do i = 1, len(a)
+      ca = iachar(a(i:i))
+      cb = iachar(b(i:i))
+      if (ca >= iachar('A') .and. ca <= iachar('Z')) ca = ca + 32
+      if (cb >= iachar('A') .and. cb <= iachar('Z')) cb = cb + 32
+      if (ca /= cb) return
+    end do
+    r = .true.
+  end function lower_eq
 
   !> Is the ground fit for an offering? Initialized, remoted, canonical.
   subroutine check_offer_ground(ready, why)
@@ -184,7 +224,7 @@ contains
              '.  RENAMED: ' // int_to_str(n_ren) // '.')
 
     ! The refusal of residue.
-    call offering_acceptable(paths, acceptable, offending)
+    call offering_acceptable(rr%out, acceptable, offending)
     if (.not. acceptable) then
       call lament('GENERATED RESIDUE STANDS IN THE OFFERING: ' // offending)
       call say('THE OFFERING IS REFUSED. RESTORE THE IGNORES AND RETURN.')

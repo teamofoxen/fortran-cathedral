@@ -5,7 +5,7 @@
 module cathedral_validate
   use forty_util, only: string_t, to_lower, starts_with, count_substr, int_to_str
   use forty_ui, only: say, lament, rule
-  use forty_paths, only: file_exists, quote
+  use forty_paths, only: file_exists, quote, temp_root
   use forty_run, only: run_result, run_cmd, read_all_lines, tool_found
   use forty_canon, only: EXIT_OK, EXIT_FAIL, CANON_BASE_URL
   use forty_confess, only: transgression_t, ledger_transgressions, &
@@ -208,12 +208,18 @@ contains
                  'VERSE ' // vs(v)%id // ': THE NEW SCROLL EXISTS')
       call check(count_substr(page, 'id="verse-' // vs(v)%id // '"') == 1, &
                  'VERSE ' // vs(v)%id // ': STANDS ON THE PAGE EXACTLY ONCE')
-      rr = run_cmd('gfortran -fsyntax-only ' // quote(vs(v)%old_file))
+      ! -J banishes .mod droppings to the temple of ephemera; even a
+      ! syntax-only blessing writes module files, and the tree stays clean.
+      rr = run_cmd('gfortran -fsyntax-only -J ' // quote(temp_root()) // &
+                   ' ' // quote(vs(v)%old_file))
       call check(rr%launched .and. rr%exit_code == 0, &
                  'VERSE ' // vs(v)%id // ': THE OLD TESTAMENT COMPILES')
-      rr = run_cmd('gfortran -fsyntax-only ' // quote(vs(v)%new_file))
+      rr = run_cmd('gfortran -fsyntax-only -J ' // quote(temp_root()) // &
+                   ' ' // quote(vs(v)%new_file))
       call check(rr%launched .and. rr%exit_code == 0, &
                  'VERSE ' // vs(v)%id // ': THE MODERN TESTAMENT COMPILES')
+      call check(.not. file_exists('state.mod'), &
+                 'VERSE ' // vs(v)%id // ': NO DROPPINGS FOUL THE TREE')
     end do
   end subroutine check_verses
 

@@ -350,24 +350,36 @@ contains
   end subroutine trial_porcelain
 
   subroutine trial_residue()
-    type(string_t), allocatable :: paths(:)
+    type(string_t), allocatable :: lines(:)
     logical :: ok
     character(:), allocatable :: offending
-    allocate (paths(2))
-    paths(1)%s = 'src/forty_offer.f90'
-    paths(2)%s = 'HERESY_LEDGER.md'
-    call offering_acceptable(paths, ok, offending)
+    allocate (lines(2))
+    lines(1)%s = ' M src/forty_offer.f90'
+    lines(2)%s = ' M HERESY_LEDGER.md'
+    call offering_acceptable(lines, ok, offending)
     call check(ok, 'HONEST WORKS ARE ACCEPTED')
-    deallocate (paths); allocate (paths(2))
-    paths(1)%s = 'src/ok.f90'
-    paths(2)%s = 'build/sneaky.o'
-    call offering_acceptable(paths, ok, offending)
+    deallocate (lines); allocate (lines(2))
+    lines(1)%s = ' M src/ok.f90'
+    lines(2)%s = '?? build/sneaky.o'
+    call offering_acceptable(lines, ok, offending)
     call check(.not. ok, 'YARD RESIDUE IS REFUSED')
     call check_str(offending, 'build/sneaky.o', 'THE OFFENDER IS NAMED')
-    deallocate (paths); allocate (paths(1))
-    paths(1)%s = 'dist/index.html'
-    call offering_acceptable(paths, ok, offending)
+    deallocate (lines); allocate (lines(1))
+    lines(1)%s = '?? dist/index.html'
+    call offering_acceptable(lines, ok, offending)
     call check(.not. ok, 'PORCH RESIDUE IS REFUSED')
+    deallocate (lines); allocate (lines(1))
+    lines(1)%s = '?? state.mod'
+    call offering_acceptable(lines, ok, offending)
+    call check(.not. ok, 'COMPILER DROPPINGS ARE REFUSED WHEREVER THEY FALL')
+    deallocate (lines); allocate (lines(1))
+    lines(1)%s = 'A  src/thing.o'
+    call offering_acceptable(lines, ok, offending)
+    call check(.not. ok, 'OBJECT FILES ARE REFUSED IN ANY CLOISTER')
+    deallocate (lines); allocate (lines(1))
+    lines(1)%s = 'D  state.mod'
+    call offering_acceptable(lines, ok, offending)
+    call check(ok, 'THE DEPARTURE OF RESIDUE IS CLEANSING, NOT DEFILEMENT')
   end subroutine trial_residue
 
   subroutine trial_offer_ground_and_accord()
@@ -659,11 +671,15 @@ contains
     do v = 1, size(vs)
       call check(exists(vs(v)%old_file) .and. exists(vs(v)%new_file), &
                  'BOTH SCROLLS EXIST: ' // vs(v)%id)
-      rr = run_cmd('gfortran -fsyntax-only ' // quote(vs(v)%old_file))
+      rr = run_cmd('gfortran -fsyntax-only -J ' // quote(temp_root()) // &
+                   ' ' // quote(vs(v)%old_file))
       call check(rr%exit_code == 0, 'THE OLD SCROLL COMPILES: ' // vs(v)%id)
-      rr = run_cmd('gfortran -fsyntax-only ' // quote(vs(v)%new_file))
+      rr = run_cmd('gfortran -fsyntax-only -J ' // quote(temp_root()) // &
+                   ' ' // quote(vs(v)%new_file))
       call check(rr%exit_code == 0, 'THE NEW SCROLL COMPILES: ' // vs(v)%id)
     end do
+    call check(.not. exists('state.mod'), &
+               'THE COMPILE CHECKS LEAVE NO DROPPINGS IN THE TREE')
 
     page = slurp_file('dist\testaments.html')
     do v = 1, size(vs)
