@@ -1,5 +1,5 @@
 {
-  "generator": "FORTY 0.7.0",
+  "generator": "FORTY 0.8.0",
   "base": "https://teamofoxen.github.io/fortran-cathedral",
   "routes": [
     {
