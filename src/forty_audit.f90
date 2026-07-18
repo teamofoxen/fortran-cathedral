@@ -580,14 +580,14 @@ contains
         'One or both guards are missing from the present source.')
     end if
 
-    call add_finding(fs, V_STRONG, 'LEDGER DOCTRINE: NOT AN OPERATIONAL ' // &
-      'TRANSGRESSION', 'The ledger''s chapter records events in which a ' // &
-      'canonical operation was performed outside Forty. This incident was ' // &
-      'the opposite shape: Forty performed the offering, a defect in his ' // &
-      'own gate admitted accidental compiler residue, and Forty performed ' // &
-      'the forward removal. No canonical operation was bypassed. Forward ' // &
-      'removal plus prevention constitutes sufficient remediation; the ' // &
-      'incident remains permanently visible in history and in this report.')
+    call add_finding(fs, V_STRONG, 'LEDGER DOCTRINE: A COMMITTED HERESY, ' // &
+      'PERMANENTLY RECORDED', 'No canonical operation was bypassed: Forty ' // &
+      'performed the offering, a defect in his own gate admitted accidental ' // &
+      'compiler residue, and Forty performed the forward removal. Under the ' // &
+      'Phase 6 doctrine the incident is nonetheless recorded permanently in ' // &
+      'the ledger''s committed chapter as a residue admission — corrected ' // &
+      'forward, permanently disclosed — and is displayed in the public ' // &
+      'Confessional beside the manual offering and the tape-measure oversight.')
   end subroutine audit_residue_incident
 
   subroutine judge_offering_shape(fs, rr, topic)

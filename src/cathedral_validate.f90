@@ -8,10 +8,14 @@ module cathedral_validate
   use forty_ui, only: say, lament, rule
   use forty_paths, only: file_exists, quote, temp_root
   use forty_run, only: run_result, run_cmd, read_all_lines, tool_found
-  use forty_canon, only: EXIT_OK, EXIT_FAIL, CANON_BASE_URL
-  use forty_confess, only: transgression_t, ledger_transgressions, &
+  use forty_canon, only: EXIT_OK, EXIT_FAIL, CANON_BASE_URL, &
+                         CANON_OFFENDING_COMMIT, CANON_RESIDUE_ADD, &
+                         CANON_RESIDUE_FIX, CANON_TAPE_MEASURE_FIX
+  use forty_confess, only: committed_t, ledger_committed, committed_counts, &
+                           extract_hashes, boundary_t, ledger_boundaries, &
                            expiation_t, ledger_expiation, &
                            list_repo_files, heresy_summary
+  use cathedral_html, only: escape_html
   use cathedral_routes, only: route_t, routes
   use cathedral_testaments, only: verse_t, verses
   use cathedral_blas, only: exhibit_axpy, exhibit_gemv, exhibit_gemm, fmt_num
@@ -96,7 +100,7 @@ contains
     call check(count_substr(doc, 'User-agent: *') == 1, 'ALL AGENTS ARE ADDRESSED')
     call check(count_substr(doc, 'Sitemap: ') == 1, 'THE MAP IS PROCLAIMED TO THEM')
 
-    call check_operational_record()
+    call check_committed_record()
     call check_generation_doctrine(rs)
     call check_verses()
     call check_links(rs)
@@ -114,27 +118,87 @@ contains
     end if
   end subroutine run_validate
 
-  !> Every transgression the Ledger records must be displayed, by
-  !> commit hash, in the public Confessional. History does not hide.
-  subroutine check_operational_record()
-    type(string_t), allocatable :: ledger(:)
-    type(transgression_t), allocatable :: trans(:)
+  !> Every committed heresy the Ledger records must be displayed in the
+  !> public Confessional — title, status, and every commit hash — the
+  !> displayed totals must agree with the ledger, no corrected entry may
+  !> silently disappear, and the executable-line accounting must remain
+  !> measured from files alone. History does not hide.
+  subroutine check_committed_record()
+    type(string_t), allocatable :: ledger(:), hashes(:)
+    type(committed_t), allocatable :: committed(:)
+    type(boundary_t), allocatable :: bounds(:)
     type(expiation_t) :: exp
-    logical :: wellformed, exp_found, any_expiated
-    character(:), allocatable :: page
-    integer :: i
+    logical :: wellformed, b_ok, exp_found, any_expiated
+    character(:), allocatable :: page, ldoc, tag
+    integer :: i, j, n_unres, n_corr, h_files, h_lines
+
     call read_all_lines('HERESY_LEDGER.md', ledger)
-    call ledger_transgressions(ledger, trans, wellformed)
-    call check(wellformed, 'THE OPERATIONAL CHAPTER IS PRESENT AND WELL-FORMED')
+    call ledger_committed(ledger, committed, wellformed)
+    call check(wellformed, 'THE COMMITTED CHAPTER IS PRESENT AND WELL-FORMED')
+    call ledger_boundaries(ledger, bounds, b_ok)
+    call check(b_ok, 'THE BOUNDARY CHAPTER IS PRESENT AND WELL-FORMED')
     page = slurp('dist\confessional.html')
+    ldoc = ''
+    do i = 1, size(ledger)
+      ldoc = ldoc // ledger(i)%s // achar(10)
+    end do
+
+    ! No corrected entry silently disappears: the canonical incidents
+    ! must still stand in the ledger, by their permanent hashes.
+    call check(count_substr(ldoc, CANON_OFFENDING_COMMIT) >= 1, &
+               'THE LEDGER STILL NAMES THE MANUAL OFFERING')
+    call check(count_substr(ldoc, CANON_RESIDUE_ADD) >= 1 .and. &
+               count_substr(ldoc, CANON_RESIDUE_FIX) >= 1, &
+               'THE LEDGER STILL NAMES THE COMPILER DROPPING AND ITS SWEEP')
+    call check(count_substr(ldoc, CANON_TAPE_MEASURE_FIX) >= 1, &
+               'THE LEDGER STILL NAMES THE TAPE-MEASURE ORDINATION')
+    call check(size(committed) >= 3, &
+               'THE THREE KNOWN COMMITTED HERESIES REMAIN RECORDED')
+
+    do i = 1, size(committed)
+      tag = 'COMMITTED HERESY ' // int_to_str(i)
+      call check(count_substr(page, escape_html(committed(i)%title)) >= 1, &
+                 tag // ': ITS TITLE STANDS IN THE CONFESSIONAL')
+      call check(count_substr(page, escape_html(committed(i)%status)) >= 1, &
+                 tag // ': ITS STATUS STANDS IN THE CONFESSIONAL')
+      call extract_hashes(committed(i)%offense_commits // ' ' // &
+                          committed(i)%evidence_commits, hashes)
+      do j = 1, size(hashes)
+        call check(count_substr(page, hashes(j)%s) >= 1, &
+                   tag // ': DISPLAYS ' // hashes(j)%s(1:7))
+      end do
+    end do
+
+    ! The displayed totals agree with the ledger, count for count.
+    call committed_counts(committed, n_unres, n_corr)
+    call check(count_substr(page, 'Committed heresies recorded</th>' // &
+               '<td class="num">' // int_to_str(size(committed)) // '</td>') == 1, &
+               'THE RECORDED TOTAL AGREES WITH THE LEDGER')
+    call check(count_substr(page, 'Committed heresies unresolved</th>' // &
+               '<td class="num">' // int_to_str(n_unres) // '</td>') == 1, &
+               'THE UNRESOLVED TOTAL AGREES WITH THE LEDGER')
+    call check(count_substr(page, 'Committed heresies corrected or expiated</th>' // &
+               '<td class="num">' // int_to_str(n_corr) // '</td>') == 1, &
+               'THE CORRECTED TOTAL AGREES WITH THE LEDGER')
+
+    ! The executable count is measured from files, never from events.
+    call heresy_summary(h_files, h_lines)
+    call check(count_substr(page, 'Executable heresy (nonblank lines)</th>' // &
+               '<td class="num">' // int_to_str(h_lines) // '</td>') == 1, &
+               'THE EXECUTABLE COUNT IS MEASURED, DISTINCT, AND DISPLAYED')
+
+    ! The boundary register is displayed in full, and its total agrees.
+    do i = 1, size(bounds)
+      call check(count_substr(page, escape_html(bounds(i)%name)) >= 1, &
+                 'THE BOUNDARY IS DISCLOSED: ' // bounds(i)%name)
+    end do
+    call check(count_substr(page, 'Necessary platform boundaries recorded</th>' // &
+               '<td class="num">' // int_to_str(size(bounds)) // '</td>') == 1, &
+               'THE BOUNDARY TOTAL AGREES WITH THE LEDGER')
+
     any_expiated = .false.
-    do i = 1, size(trans)
-      if (index(trans(i)%status, 'EXPIATED') > 0) any_expiated = .true.
-      if (len(trans(i)%commit) >= 7) then
-        call check(count_substr(page, trans(i)%commit) >= 1, &
-                   'THE CONFESSIONAL DISPLAYS TRANSGRESSION ' // int_to_str(i) // &
-                   ' (' // trans(i)%commit(1:7) // ')')
-      end if
+    do i = 1, size(committed)
+      if (index(committed(i)%status, 'EXPIATED') > 0) any_expiated = .true.
     end do
     if (any_expiated) then
       call ledger_expiation(ledger, exp, exp_found)
@@ -148,7 +212,7 @@ contains
                    'THE CONFESSIONAL PROCLAIMS: EXPIATED, NOT ERASED')
       end if
     end if
-  end subroutine check_operational_record
+  end subroutine check_committed_record
 
   !> The doctrine: all HTML is generated by Fortran. No handwritten
   !> .html may stand in the source tree, every page in the porch must be

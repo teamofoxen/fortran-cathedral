@@ -79,6 +79,14 @@ be minimized, isolated, and recorded in [HERESY_LEDGER.md](HERESY_LEDGER.md).
 
 Current measurement, by Forty himself: **0 executable lines of heresy.**
 
+The ledger keeps a second register besides the executable one:
+**committed heresies** — avoidable violations of the architecture,
+recorded permanently, corrected forward, never erased. Three stand
+recorded, none unresolved. Nine necessary platform boundaries are
+ledgered beside them. The public Confessional renders every entry,
+commit hash, and status directly from the ledger, and the validator
+refuses any drift between the record and the page.
+
 ## The canon
 
 Read, in order: [CLAUDE.md](CLAUDE.md), [VISION.md](VISION.md),
@@ -151,6 +159,18 @@ five distinct fates (standard / obsolescent / deleted / never standard /
 extension), each bearing the compiler's own probed testimony under
 `-std=f2018` and by default — measured at generation, re-measured by the
 validator, never asserted from prose.
+
+Phase 6 closed by expanding the Confessional's doctrine: heresy is
+accounted in two registers. The necessary register holds 0 executable
+impurities and 9 ledgered platform boundaries. The committed register
+holds 3 avoidable violations, recorded permanently with offense,
+consequence, commits, remediation, evidence, and status — the manual
+Phase 1 offering (EXPIATED, NOT ERASED), the compiler dropping, and the
+browser tape-measure oversight (each CORRECTED FORWARD, PERMANENTLY
+DISCLOSED). Forty parses, counts, and renders the record; the validator
+proves every entry, hash, status, and total appears publicly, and that
+the executable-line count stays measured from files alone. 453 trials.
+236 validator checks. Forty 0.8.0.
 
 The Saints of Numerical Computing await their phase.
 

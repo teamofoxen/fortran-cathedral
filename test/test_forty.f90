@@ -48,8 +48,9 @@ program test_forty
   use forty_paths, only: quote, temp_root, set_cwd
   use forty_run, only: run_result, run_cmd, read_all_lines, write_lines, &
                        delete_file, version_line
-  use forty_confess, only: classify, ledger_entries, transgression_t, &
-                           ledger_transgressions, split_cells, &
+  use forty_confess, only: classify, ledger_entries, committed_t, &
+                           ledger_committed, committed_counts, extract_hashes, &
+                           boundary_t, ledger_boundaries, split_cells, &
                            expiation_t, ledger_expiation, list_repo_files, &
                            CLASS_FORTRAN, CLASS_DECLARATIVE, CLASS_HERESY, CLASS_OTHER
   use cathedral_highlight, only: highlight_line
@@ -118,7 +119,9 @@ program test_forty
   call trial_blas_arithmetic()
   call trial_blas_page()
   call trial_rebuild_from_nothing()
-  call trial_transgressions()
+  call trial_committed_heresies()
+  call trial_hash_extraction()
+  call trial_boundaries()
   call trial_commit_messages()
   call trial_offer_plan()
   call trial_porcelain()
@@ -270,9 +273,9 @@ contains
     lines(3)%s = '|---|---:|---:|---|---|---|'
     lines(4)%s = '| `heresy/x.js` | JavaScript | 12 | pump | boundary | purge |'
     lines(5)%s = 'Prose outside the table is ignored.'
-    lines(6)%s = '## Operational transgressions'
-    lines(7)%s = '|---|---|---|---:|---|---|---|'
-    lines(8)%s = '| 2026-07-18 | An event | `abc1234` | 0 | why | how | Historical. |'
+    lines(6)%s = '## Committed heresies'
+    lines(7)%s = '### Some event'
+    lines(8)%s = '| Offense commits | `abc1234` |'
     call ledger_entries(lines, entries)
     call check(size(entries) == 1, 'ONE SIN, ONE ENTRY')
     if (size(entries) == 1) then
@@ -280,12 +283,12 @@ contains
     end if
   end subroutine trial_ledger
 
-  subroutine trial_transgressions()
+  subroutine trial_committed_heresies()
     type(string_t), allocatable :: lines(:), cells(:), ledger(:)
-    type(transgression_t), allocatable :: trans(:)
+    type(committed_t), allocatable :: cs(:)
     logical :: wellformed
-    integer :: i
-    logical :: found
+    integer :: i, n_unres, n_corr
+    character(:), allocatable :: doc
 
     call split_cells('| a | `b` |  c  |', cells)
     call check(size(cells) == 3, 'THREE CELLS ARE CUT FROM THE ROW')
@@ -294,39 +297,154 @@ contains
       call check_str(cells(3)%s, 'c', 'CELLS ARE TRIMMED')
     end if
 
-    allocate (lines(4))
-    lines(1)%s = '## Operational transgressions'
-    lines(2)%s = '| Date | Event | Commit | Executable non-Fortran lines introduced | Why | Remediation | Status |'
-    lines(3)%s = '|---|---|---|---:|---|---|---|'
-    lines(4)%s = '| 2026-07-18 | Manual push | `abc1234def` | 0 | haste | forty offer | Historical. |'
-    call ledger_transgressions(lines, trans, wellformed)
-    call check(wellformed, 'A FULL ROW IS WELL-FORMED')
-    call check(size(trans) == 1, 'ONE TRANSGRESSION IS READ')
-    if (size(trans) == 1) then
-      call check_str(trans(1)%commit, 'abc1234def', 'THE COMMIT IS NAMED')
-      call check_str(trans(1)%exec_lines, '0', 'THE LINE COUNT IS NUMERIC')
-      call check_str(trans(1)%status, 'Historical.', 'THE STATUS ENDURES')
+    call fixture_committed(lines, 'Historical. Disclosed. Not erasable.')
+    call ledger_committed(lines, cs, wellformed)
+    call check(wellformed, 'A FULL ENTRY IS WELL-FORMED')
+    call check(size(cs) == 1, 'ONE COMMITTED HERESY IS READ')
+    if (size(cs) == 1) then
+      call check_str(cs(1)%title, 'A test offense', 'THE TITLE IS TAKEN FROM THE HEADING')
+      call check_str(cs(1)%offense_commits, 'abc1234def', 'THE OFFENSE COMMIT IS NAMED')
+      call check_str(cs(1)%exec_lines, '0', 'THE LINE COUNT IS NUMERIC')
+      call check_str(cs(1)%status, 'Historical. Disclosed. Not erasable.', &
+                     'THE STATUS ENDURES')
     end if
+    call committed_counts(cs, n_unres, n_corr)
+    call check(n_unres == 1 .and. n_corr == 0, 'AN UNRESOLVED STATUS IS COUNTED AS SUCH')
 
-    lines(4)%s = '| 2026-07-18 | Too few cells | `abc` | 0 |'
-    call ledger_transgressions(lines, trans, wellformed)
-    call check(.not. wellformed, 'A TRUNCATED ROW IS CONDEMNED')
+    call fixture_committed(lines, 'CORRECTED FORWARD, PERMANENTLY DISCLOSED.')
+    call ledger_committed(lines, cs, wellformed)
+    call committed_counts(cs, n_unres, n_corr)
+    call check(n_unres == 0 .and. n_corr == 1, 'A CORRECTED STATUS IS COUNTED AS SUCH')
+
+    call fixture_committed(lines, 'EXPIATED, NOT ERASED.')
+    call ledger_committed(lines, cs, wellformed)
+    call committed_counts(cs, n_unres, n_corr)
+    call check(n_unres == 0 .and. n_corr == 1, 'AN EXPIATED STATUS IS COUNTED AS RESOLVED')
+
+    ! An entry missing its Status is condemned.
+    call fixture_committed(lines, 'Historical.')
+    lines(size(lines))%s = ''
+    call ledger_committed(lines, cs, wellformed)
+    call check(.not. wellformed, 'AN INCOMPLETE ENTRY IS CONDEMNED')
+
+    ! A non-numeric line count is condemned.
+    call fixture_committed(lines, 'Historical.')
+    do i = 1, size(lines)
+      if (index(lines(i)%s, 'lines introduced') > 0) then
+        lines(i)%s = '| Executable non-Fortran lines introduced | none |'
+      end if
+    end do
+    call ledger_committed(lines, cs, wellformed)
+    call check(.not. wellformed, 'A NON-NUMERIC LINE COUNT IS CONDEMNED')
 
     deallocate (lines); allocate (lines(1))
     lines(1)%s = 'No chapter here.'
-    call ledger_transgressions(lines, trans, wellformed)
+    call ledger_committed(lines, cs, wellformed)
     call check(.not. wellformed, 'A MISSING CHAPTER IS CONDEMNED')
 
+    ! The true ledger: three known heresies, none unresolved, every
+    ! canonical hash still standing.
     call read_all_lines('HERESY_LEDGER.md', ledger)
-    call ledger_transgressions(ledger, trans, wellformed)
-    call check(wellformed, 'THE TRUE LEDGER''S CHAPTER IS WELL-FORMED')
-    call check(size(trans) >= 1, 'THE TRUE LEDGER REMEMBERS AT LEAST ONE')
-    found = .false.
-    do i = 1, size(trans)
-      if (index(trans(i)%commit, 'd2c9f0be') > 0) found = .true.
+    call ledger_committed(ledger, cs, wellformed)
+    call check(wellformed, 'THE TRUE LEDGER''S COMMITTED CHAPTER IS WELL-FORMED')
+    call check(size(cs) >= 3, 'THE TRUE LEDGER REMEMBERS ALL THREE')
+    call committed_counts(cs, n_unres, n_corr)
+    call check(n_unres == 0, 'NO COMMITTED HERESY STANDS UNRESOLVED')
+    call check(n_corr == size(cs), 'EVERY COMMITTED HERESY IS CORRECTED OR EXPIATED')
+    doc = ledger_doc()
+    call check(index(doc, 'd2c9f0be63f28b7ecf136c1b9b81a7bd993132db') > 0, &
+               'THE PHASE 1 OFFERING IS PERMANENTLY NAMED')
+    call check(index(doc, '8d4ef023f465ff1bcb9390eaa42059532458a14a') > 0 .and. &
+               index(doc, 'f83193574ca18fcf470b909e9655e6837aa22408') > 0, &
+               'THE COMPILER DROPPING AND ITS SWEEP ARE PERMANENTLY NAMED')
+    call check(index(doc, '212a877d5df6f462d85b856b613f2422ee755a81') > 0, &
+               'THE TAPE-MEASURE ORDINATION IS PERMANENTLY NAMED')
+    do i = 1, size(cs)
+      call check_str(cs(i)%exec_lines, '0', &
+                     'NO COMMITTED HERESY INFLATES THE EXECUTABLE COUNT: ' // &
+                     cs(i)%title)
     end do
-    call check(found, 'THE PHASE 1 TRANSGRESSION IS PERMANENTLY NAMED')
-  end subroutine trial_transgressions
+  end subroutine trial_committed_heresies
+
+  !> One committed-heresy fixture entry, complete, with the given status.
+  subroutine fixture_committed(lines, status)
+    type(string_t), allocatable, intent(out) :: lines(:)
+    character(*), intent(in) :: status
+    allocate (lines(0))
+    call push_string(lines, '## Committed heresies')
+    call push_string(lines, '')
+    call push_string(lines, '### A test offense')
+    call push_string(lines, '')
+    call push_string(lines, '| Field | Value |')
+    call push_string(lines, '|---|---|')
+    call push_string(lines, '| Date | 2026-07-18 |')
+    call push_string(lines, '| Offense | A manual push |')
+    call push_string(lines, '| Consequence | The tree moved without Forty |')
+    call push_string(lines, '| Executable non-Fortran lines introduced | 0 |')
+    call push_string(lines, '| Offense commits | `abc1234def` |')
+    call push_string(lines, '| Remediation | forty offer |')
+    call push_string(lines, '| Evidence commits | `fedcba98765` |')
+    call push_string(lines, '| Status | ' // status // ' |')
+  end subroutine fixture_committed
+
+  subroutine trial_hash_extraction()
+    type(string_t), allocatable :: hashes(:)
+
+    call extract_hashes('`c0a39214a655` `510285b6736f` `21d3514c4335`', hashes)
+    call check(size(hashes) == 3, 'THREE HASHES ARE DRAWN FROM ONE CELL')
+    if (size(hashes) == 3) then
+      call check_str(hashes(1)%s, 'c0a39214a655', 'THE FIRST HASH IS EXACT')
+      call check_str(hashes(3)%s, '21d3514c4335', 'THE LAST HASH IS EXACT')
+    end if
+    call extract_hashes('(none — the offense was supervisory)', hashes)
+    call check(size(hashes) == 0, 'A SUPERVISORY OFFENSE YIELDS NO HASHES')
+    call extract_hashes('abc123', hashes)
+    call check(size(hashes) == 0, 'SIX HEX CHARACTERS ARE NOT YET A HASH')
+    call extract_hashes('abc1234', hashes)
+    call check(size(hashes) == 1, 'SEVEN HEX CHARACTERS ARE A HASH')
+    call extract_hashes('word abc1234def word', hashes)
+    call check(size(hashes) == 1, 'A HASH IS FOUND AMID WORDS')
+  end subroutine trial_hash_extraction
+
+  subroutine trial_boundaries()
+    type(string_t), allocatable :: lines(:), ledger(:)
+    type(boundary_t), allocatable :: bs(:)
+    logical :: wellformed, found
+    integer :: i
+
+    allocate (lines(5))
+    lines(1)%s = '## Necessary platform boundaries'
+    lines(2)%s = '| Boundary | Role | Why Fortran cannot absorb it |'
+    lines(3)%s = '|---|---|---|'
+    lines(4)%s = '| Git | The vault | A platform |'
+    lines(5)%s = '| curl | The fetcher | Already present |'
+    call ledger_boundaries(lines, bs, wellformed)
+    call check(wellformed, 'A FULL BOUNDARY TABLE IS WELL-FORMED')
+    call check(size(bs) == 2, 'TWO BOUNDARIES ARE READ')
+    if (size(bs) == 2) then
+      call check_str(bs(1)%name, 'Git', 'THE BOUNDARY IS NAMED')
+      call check_str(bs(2)%why, 'Already present', 'THE JUSTIFICATION IS KEPT')
+    end if
+
+    lines(5)%s = '| curl | The fetcher |'
+    call ledger_boundaries(lines, bs, wellformed)
+    call check(.not. wellformed, 'AN UNJUSTIFIED BOUNDARY IS CONDEMNED')
+
+    deallocate (lines); allocate (lines(1))
+    lines(1)%s = 'No chapter here.'
+    call ledger_boundaries(lines, bs, wellformed)
+    call check(.not. wellformed, 'A MISSING BOUNDARY CHAPTER IS CONDEMNED')
+
+    call read_all_lines('HERESY_LEDGER.md', ledger)
+    call ledger_boundaries(ledger, bs, wellformed)
+    call check(wellformed, 'THE TRUE LEDGER''S BOUNDARY CHAPTER IS WELL-FORMED')
+    call check(size(bs) == 9, 'NINE BOUNDARIES STAND RECORDED')
+    found = .false.
+    do i = 1, size(bs)
+      if (index(bs(i)%name, 'Chromium') > 0) found = .true.
+    end do
+    call check(found, 'THE MEASURING INSTRUMENT IS DISCLOSED AS A BOUNDARY')
+  end subroutine trial_boundaries
 
   subroutine trial_commit_messages()
     call check(valid_commit_message('PHASE 1.1: FORTY RECEIVES THE OFFERING.'), &
@@ -623,9 +741,25 @@ contains
                'THE MAP KNOWS THE NAVE')
     doc = slurp_file('dist\confessional.html')
     call check(count_substr(doc, 'd2c9f0be63f28b7ecf136c1b9b81a7bd993132db') >= 1, &
-               'THE CONFESSIONAL DISPLAYS THE TRANSGRESSION''S COMMIT')
-    call check(count_substr(doc, 'The operational record') >= 1, &
-               'THE OPERATIONAL RECORD HAS ITS SECTION')
+               'THE CONFESSIONAL DISPLAYS THE MANUAL OFFERING''S COMMIT')
+    call check(count_substr(doc, '8d4ef023f465ff1bcb9390eaa42059532458a14a') >= 1 .and. &
+               count_substr(doc, 'f83193574ca18fcf470b909e9655e6837aa22408') >= 1, &
+               'THE CONFESSIONAL DISPLAYS THE COMPILER DROPPING AND ITS SWEEP')
+    call check(count_substr(doc, '212a877d5df6f462d85b856b613f2422ee755a81') >= 1, &
+               'THE CONFESSIONAL DISPLAYS THE TAPE-MEASURE ORDINATION')
+    call check(count_substr(doc, 'The committed heresies') >= 1, &
+               'THE COMMITTED HERESIES HAVE THEIR SECTION')
+    call check(count_substr(doc, 'The necessary platform boundaries') >= 1, &
+               'THE BOUNDARIES HAVE THEIR SECTION')
+    call check(count_substr(doc, 'EXPIATED, NOT ERASED.') >= 1 .and. &
+               count_substr(doc, 'CORRECTED FORWARD, PERMANENTLY DISCLOSED.') >= 2, &
+               'EVERY STATUS IS PROCLAIMED IN FULL')
+    call check(count_substr(doc, 'Committed heresies recorded</th><td class="num">3</td>') == 1, &
+               'THE RECORDED TOTAL IS DISPLAYED: THREE')
+    call check(count_substr(doc, 'Committed heresies unresolved</th><td class="num">0</td>') == 1, &
+               'THE UNRESOLVED TOTAL IS DISPLAYED: ZERO')
+    call check(count_substr(doc, 'Executable heresy (nonblank lines)</th><td class="num">0</td>') == 1, &
+               'THE EXECUTABLE COUNT STAYS DISTINCT AND ZERO')
     call set_muted(.true.)
     call run_validate(code)
     call set_muted(.false.)
@@ -1310,12 +1444,19 @@ contains
     call push_string(lines, '|---|---:|---:|---|---|---|')
     call push_string(lines, '| None | - | 0 | - | - | - |')
     call push_string(lines, '')
-    call push_string(lines, '## Operational transgressions')
-    call push_string(lines, '| Date | Event | Commit | Executable non-Fortran lines introduced | Why | Remediation | Status |')
-    call push_string(lines, '|---|---|---|---:|---|---|---|')
+    call push_string(lines, '## Committed heresies')
     if (row_mode /= ROW_NONE) then
-      call push_string(lines, '| 2026-07-18 | A manual offering | `' // row_hash // &
-                       '` | 0 | haste | forty offer | Historical. Disclosed. Not erasable. |')
+      call push_string(lines, '### A manual offering')
+      call push_string(lines, '| Field | Value |')
+      call push_string(lines, '|---|---|')
+      call push_string(lines, '| Date | 2026-07-18 |')
+      call push_string(lines, '| Offense | A manual offering |')
+      call push_string(lines, '| Consequence | Haste |')
+      call push_string(lines, '| Executable non-Fortran lines introduced | 0 |')
+      call push_string(lines, '| Offense commits | `' // row_hash // '` |')
+      call push_string(lines, '| Remediation | forty offer |')
+      call push_string(lines, '| Evidence commits | (awaiting the rite) |')
+      call push_string(lines, '| Status | Historical. Disclosed. Not erasable. |')
     end if
     call push_string(lines, '')
     call push_string(lines, '## Rules')
@@ -1364,7 +1505,7 @@ contains
   subroutine trial_expiate_transform()
     type(string_t), allocatable :: lines(:), out(:)
     type(expiation_t) :: exp
-    type(transgression_t), allocatable :: trans(:)
+    type(committed_t), allocatable :: cs(:)
     logical :: changed, found, wellformed
     character(40), parameter :: OFF = repeat('a', 40)
     character(40), parameter :: WH = repeat('b', 40)
@@ -1373,11 +1514,25 @@ contains
     integer :: i
 
     allocate (lines(0))
-    call push_string(lines, '## Operational transgressions')
-    call push_string(lines, '| Date | Event | Commit | Executable non-Fortran lines introduced | Why | Remediation | Status |')
-    call push_string(lines, '|---|---|---|---:|---|---|---|')
-    call push_string(lines, '| 2026-07-18 | Manual push | `' // OFF // &
-                     '` | 0 | haste | forty offer | Historical. Disclosed. Not erasable. |')
+    call push_string(lines, '## Committed heresies')
+    call push_string(lines, '### An innocent bystander')
+    call push_string(lines, '| Date | 2026-07-18 |')
+    call push_string(lines, '| Offense | Another sin entirely |')
+    call push_string(lines, '| Consequence | None here |')
+    call push_string(lines, '| Executable non-Fortran lines introduced | 0 |')
+    call push_string(lines, '| Offense commits | `' // repeat('d', 40) // '` |')
+    call push_string(lines, '| Remediation | Patience |')
+    call push_string(lines, '| Evidence commits | (none) |')
+    call push_string(lines, '| Status | Historical. Disclosed. Not erasable. |')
+    call push_string(lines, '### A manual push')
+    call push_string(lines, '| Date | 2026-07-18 |')
+    call push_string(lines, '| Offense | Manual push |')
+    call push_string(lines, '| Consequence | Haste |')
+    call push_string(lines, '| Executable non-Fortran lines introduced | 0 |')
+    call push_string(lines, '| Offense commits | `' // OFF // '` |')
+    call push_string(lines, '| Remediation | forty offer |')
+    call push_string(lines, '| Evidence commits | (awaiting the rite) |')
+    call push_string(lines, '| Status | Historical. Disclosed. Not erasable. |')
     call push_string(lines, '')
     call push_string(lines, '## Rules')
     call push_string(lines, 'Prose.')
@@ -1389,13 +1544,18 @@ contains
     end do
     call check(count_substr(doc, 'EXPIATED, NOT ERASED.') == 1, &
                'THE STATUS TRANSITIONS EXACTLY ONCE')
-    call check(count_substr(doc, 'Historical. Disclosed. Not erasable.') == 0, &
-               'THE OLD STATUS DEPARTS')
+    call check(count_substr(doc, 'Historical. Disclosed. Not erasable.') == 1, &
+               'THE BYSTANDER''S STATUS IS UNTOUCHED; THE OFFENDER''S DEPARTS')
     call check(index(doc, '## Expiation record') > 0 .and. &
                index(doc, '## Expiation record') < index(doc, '## Rules'), &
                'THE RECORD IS INSCRIBED BEFORE THE RULES')
-    call ledger_transgressions(out, trans, wellformed)
-    call check(wellformed .and. size(trans) == 1, 'THE TRANSFORMED CHAPTER STILL PARSES')
+    call ledger_committed(out, cs, wellformed)
+    call check(wellformed .and. size(cs) == 2, 'THE TRANSFORMED CHAPTER STILL PARSES')
+    if (size(cs) == 2) then
+      call check(index(cs(1)%status, 'EXPIATED') == 0 .and. &
+                 index(cs(2)%status, 'EXPIATED') > 0, &
+                 'ONLY THE OFFENDING ENTRY TRANSITIONS')
+    end if
     call ledger_expiation(out, exp, found)
     call check(found, 'THE EXPIATION RECORD PARSES')
     if (found) then

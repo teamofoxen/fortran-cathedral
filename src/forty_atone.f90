@@ -10,13 +10,13 @@
 !> checked-out working tree never passes through the withdrawn state,
 !> because only refs move and R's tree equals the tree already on disk.
 module forty_atone
-  use forty_util, only: string_t, push_string, int_to_str
+  use forty_util, only: string_t, push_string, int_to_str, starts_with
   use forty_ui, only: say, lament, rule, blank, confirm
   use forty_run, only: run_result, run_cmd, run_live, version_line, &
                        read_all_lines, write_lines
   use forty_git, only: git_initialized, git_branch, git_remote_url, is_hash
   use forty_cli, only: cli_t
-  use forty_confess, only: transgression_t, ledger_transgressions
+  use forty_confess, only: committed_t, ledger_committed, split_cells
   use forty_offer, only: run_offer
   use cathedral_generate, only: run_generate
   use cathedral_validate, only: run_validate
@@ -114,7 +114,7 @@ contains
     integer, intent(out) :: exit_code
     type(run_result) :: rr
     type(string_t), allocatable :: ledger(:), newledger(:)
-    type(transgression_t), allocatable :: trans(:)
+    type(committed_t), allocatable :: committed(:)
     logical :: found, wellformed, ok, changed
     integer :: i, idx
     character(:), allocatable :: branch, url, head, omain
@@ -169,20 +169,20 @@ contains
       call lament('THE LEDGER ITSELF IS MISSING.')
       return
     end if
-    call ledger_transgressions(ledger, trans, wellformed)
+    call ledger_committed(ledger, committed, wellformed)
     if (.not. wellformed) then
-      call lament('THE OPERATIONAL CHAPTER IS MISSING OR MALFORMED.')
+      call lament('THE COMMITTED CHAPTER IS MISSING OR MALFORMED.')
       return
     end if
     idx = 0
-    do i = 1, size(trans)
-      if (trans(i)%commit == offender) idx = i
+    do i = 1, size(committed)
+      if (index(committed(i)%offense_commits, offender) > 0) idx = i
     end do
     if (idx == 0) then
       call lament('THE LEDGER DOES NOT RECORD THIS OFFENSE: ' // offender)
       return
     end if
-    if (index(trans(idx)%status, 'EXPIATED') > 0) then
+    if (index(committed(idx)%status, 'EXPIATED') > 0) then
       call say('THE STAIN IS ALREADY EXPIATED. ATONE NO FURTHER.')
       exit_code = EXIT_OK
       return
@@ -368,31 +368,56 @@ contains
   end subroutine perform_restitution
 
   !> The ledger's transition, as a pure transform the trials can judge:
-  !> the offending row's status becomes EXPIATED, NOT ERASED, and an
-  !> expiation-record chapter is inscribed before the rules.
+  !> within the committed chapter, the entry whose Offense commits row
+  !> names the offender has its Status row become EXPIATED, NOT ERASED,
+  !> and an expiation-record chapter is inscribed before the rules.
+  !> The canonical field order — Status closing each entry — is relied
+  !> upon, and the trials enforce it.
   subroutine expiate_ledger_lines(lines, offender, w, r, out_lines, changed)
     type(string_t), intent(in) :: lines(:)
     character(*), intent(in) :: offender, w, r
     type(string_t), allocatable, intent(out) :: out_lines(:)
     logical, intent(out) :: changed
+    type(string_t), allocatable :: cells(:)
     integer :: i, p
-    logical :: replaced, inserted
-    character(:), allocatable :: line
+    logical :: replaced, inserted, in_chapter, in_target
+    character(:), allocatable :: line, t
 
     allocate (out_lines(0))
     replaced = .false.
     inserted = .false.
+    in_chapter = .false.
+    in_target = .false.
     do i = 1, size(lines)
       line = lines(i)%s
-      if (.not. inserted .and. trim(adjustl(line)) == '## Rules') then
-        call append_expiation_chapter(out_lines, offender, w, r)
-        inserted = .true.
-      end if
-      if (.not. replaced .and. index(line, offender) > 0) then
-        p = index(line, STATUS_OLD)
-        if (p > 0) then
-          line = line(1:p - 1) // STATUS_EXPIATED // line(p + len(STATUS_OLD):)
-          replaced = .true.
+      t = trim(adjustl(line))
+      if (starts_with(t, '## ')) then
+        if (.not. inserted .and. t == '## Rules') then
+          call append_expiation_chapter(out_lines, offender, w, r)
+          inserted = .true.
+        end if
+        in_chapter = (t == '## Committed heresies')
+        in_target = .false.
+      else if (in_chapter .and. starts_with(t, '### ')) then
+        in_target = .false.
+      else if (in_chapter .and. len(t) > 1) then
+        if (t(1:1) == '|') then
+          call split_cells(t, cells)
+          if (size(cells) >= 2) then
+            if (cells(1)%s == 'Offense commits' .and. &
+                index(t, offender) > 0) then
+              in_target = .true.
+            else if (in_target .and. .not. replaced .and. &
+                     cells(1)%s == 'Status') then
+              p = index(line, STATUS_OLD)
+              if (p > 0) then
+                line = line(1:p - 1) // STATUS_EXPIATED // &
+                       line(p + len(STATUS_OLD):)
+                replaced = .true.
+                in_target = .false.
+              end if
+            end if
+          end if
         end if
       end if
       call push_string(out_lines, line)

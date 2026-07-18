@@ -4,7 +4,9 @@
 module cathedral_facts
   use forty_util, only: string_t
   use forty_confess, only: heresy_summary, list_repo_files, classify, &
-                           CLASS_FORTRAN, transgression_t, ledger_transgressions, &
+                           CLASS_FORTRAN, ledger_entries, &
+                           committed_t, ledger_committed, committed_counts, &
+                           boundary_t, ledger_boundaries, &
                            expiation_t, ledger_expiation
   use forty_run, only: read_all_lines
   use forty_canon, only: FORTY_VERSION
@@ -17,8 +19,12 @@ module cathedral_facts
     integer :: heresy_files = 0
     integer :: heresy_lines = 0
     integer :: route_count = 0
+    integer :: n_necessary = 0
+    integer :: n_unresolved = 0
+    integer :: n_corrected = 0
     character(:), allocatable :: generator
-    type(transgression_t), allocatable :: trans(:)
+    type(committed_t), allocatable :: committed(:)
+    type(boundary_t), allocatable :: boundaries(:)
     type(expiation_t) :: expiation
     logical :: expiated = .false.
   end type build_facts_t
@@ -28,7 +34,7 @@ contains
   subroutine gather_facts(facts, route_count)
     type(build_facts_t), intent(out) :: facts
     integer, intent(in) :: route_count
-    type(string_t), allocatable :: files(:), ledger(:)
+    type(string_t), allocatable :: files(:), ledger(:), entries(:)
     logical :: ok, wellformed
     integer :: i
     facts%generator = 'FORTY ' // FORTY_VERSION
@@ -42,10 +48,14 @@ contains
         end if
       end do
     end if
-    ! The operational record flows from the Ledger into the public page.
+    ! The two registers flow from the Ledger into the public page.
     ! Generation is lenient here; forty confess is the enforcer.
     call read_all_lines('HERESY_LEDGER.md', ledger)
-    call ledger_transgressions(ledger, facts%trans, wellformed)
+    call ledger_entries(ledger, entries)
+    facts%n_necessary = size(entries)
+    call ledger_boundaries(ledger, facts%boundaries, wellformed)
+    call ledger_committed(ledger, facts%committed, wellformed)
+    call committed_counts(facts%committed, facts%n_unresolved, facts%n_corrected)
     call ledger_expiation(ledger, facts%expiation, facts%expiated)
   end subroutine gather_facts
 

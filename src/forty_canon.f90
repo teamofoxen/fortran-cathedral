@@ -5,10 +5,10 @@ module forty_canon
   private
   public :: FORTY_VERSION, CANON_REPO_NAME, CANON_DESCRIPTION, CANON_BASE_URL
   public :: CANON_COMMIT_MSG, CANON_COMMIT_TRAILER, CANON_OFFENDING_COMMIT
-  public :: CANON_RESIDUE_ADD, CANON_RESIDUE_FIX
+  public :: CANON_RESIDUE_ADD, CANON_RESIDUE_FIX, CANON_TAPE_MEASURE_FIX
   public :: EXIT_OK, EXIT_FAIL, EXIT_USAGE, EXIT_ENV, EXIT_EXTERNAL, EXIT_DECLINED
 
-  character(*), parameter :: FORTY_VERSION = '0.7.0'
+  character(*), parameter :: FORTY_VERSION = '0.8.0'
 
   !> The intended canonical home of the generated site. Deployment is a
   !> later phase; the sitemap and robots.txt speak of this address in
@@ -34,6 +34,11 @@ module forty_canon
     '8d4ef023f465ff1bcb9390eaa42059532458a14a'
   character(*), parameter :: CANON_RESIDUE_FIX = &
     'f83193574ca18fcf470b909e9655e6837aa22408'
+
+  !> The tape-measure oversight's correction: the offering that ordained
+  !> forty inspect, ending the era of unmeasured public fabric.
+  character(*), parameter :: CANON_TAPE_MEASURE_FIX = &
+    '212a877d5df6f462d85b856b613f2422ee755a81'
 
   integer, parameter :: EXIT_OK       = 0  ! the rite concluded
   integer, parameter :: EXIT_FAIL     = 1  ! general failure or wrong ground

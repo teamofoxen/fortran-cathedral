@@ -11,23 +11,37 @@ module forty_confess
   private
   public :: CLASS_FORTRAN, CLASS_DECLARATIVE, CLASS_HERESY, CLASS_OTHER
   public :: classify, ledger_entries, list_repo_files, run_confess, heresy_summary
-  public :: transgression_t, ledger_transgressions, split_cells
+  public :: committed_t, ledger_committed, committed_counts, extract_hashes
+  public :: boundary_t, ledger_boundaries, split_cells
   public :: expiation_t, ledger_expiation
 
   integer, parameter :: CLASS_FORTRAN = 1, CLASS_DECLARATIVE = 2
   integer, parameter :: CLASS_HERESY = 3, CLASS_OTHER = 4
 
-  !> One recorded operational or architectural transgression: an event,
+  !> One committed heresy: an avoidable violation — an operational
+  !> mistake, an architectural lapse, a residue admission, or a failure
+  !> to grant Fortran ownership it could plausibly have held. An event,
   !> not code. Permanent, disclosed, and displayed in the Confessional.
-  type :: transgression_t
+  type :: committed_t
+    character(:), allocatable :: title
     character(:), allocatable :: date
-    character(:), allocatable :: event
-    character(:), allocatable :: commit
+    character(:), allocatable :: offense
+    character(:), allocatable :: consequence
     character(:), allocatable :: exec_lines
-    character(:), allocatable :: why
+    character(:), allocatable :: offense_commits
     character(:), allocatable :: remediation
+    character(:), allocatable :: evidence_commits
     character(:), allocatable :: status
-  end type transgression_t
+  end type committed_t
+
+  !> One necessary platform boundary: an external program Forty drives
+  !> at a genuine seam, recorded and counted so the accounting of what
+  !> is not Fortran stays public and exact.
+  type :: boundary_t
+    character(:), allocatable :: name
+    character(:), allocatable :: role
+    character(:), allocatable :: why
+  end type boundary_t
 
   !> The record of a restitution: how a stain was expiated without
   !> erasing, amending, squashing, or rewriting anything.
@@ -131,14 +145,157 @@ contains
     end do
   end subroutine ledger_entries
 
-  !> Read the operational chapter. wellformed reports whether the
-  !> chapter exists and every row carries its full seven cells.
-  subroutine ledger_transgressions(lines, entries, wellformed)
+  !> Read the committed chapter. Each entry opens with a '### ' heading
+  !> and carries its fields as | Key | Value | rows. wellformed reports
+  !> whether the chapter exists and every entry bears all eight fields,
+  !> with a numeric executable-line count.
+  subroutine ledger_committed(lines, entries, wellformed)
     type(string_t), intent(in) :: lines(:)
-    type(transgression_t), allocatable, intent(out) :: entries(:)
+    type(committed_t), allocatable, intent(out) :: entries(:)
     logical, intent(out) :: wellformed
     type(string_t), allocatable :: cells(:)
-    type(transgression_t), allocatable :: tmp(:)
+    type(committed_t) :: cur
+    integer :: i
+    logical :: in_chapter, chapter_seen, open_entry
+    character(:), allocatable :: line, key
+    allocate (entries(0))
+    in_chapter = .false.
+    chapter_seen = .false.
+    open_entry = .false.
+    wellformed = .true.
+    do i = 1, size(lines)
+      line = trim(adjustl(lines(i)%s))
+      if (starts_with(line, '## ')) then
+        if (in_chapter .and. open_entry) then
+          call close_entry(cur, entries, wellformed)
+          open_entry = .false.
+        end if
+        in_chapter = (line == '## Committed heresies')
+        if (in_chapter) chapter_seen = .true.
+        cycle
+      end if
+      if (.not. in_chapter) cycle
+      if (starts_with(line, '### ')) then
+        if (open_entry) call close_entry(cur, entries, wellformed)
+        call blank_entry(cur)
+        cur%title = trim(adjustl(line(5:)))
+        open_entry = .true.
+        cycle
+      end if
+      if (.not. open_entry) cycle
+      if (len(line) < 2) cycle
+      if (line(1:1) /= '|') cycle
+      call split_cells(line, cells)
+      if (size(cells) < 2) cycle
+      key = cells(1)%s
+      if (len(key) == 0) cycle
+      if (key == 'Field') cycle
+      if (verify(key, '-: ') == 0) cycle   ! separator rows
+      select case (key)
+      case ('Date');             cur%date = cells(2)%s
+      case ('Offense');          cur%offense = cells(2)%s
+      case ('Consequence');      cur%consequence = cells(2)%s
+      case ('Executable non-Fortran lines introduced'); cur%exec_lines = cells(2)%s
+      case ('Offense commits');  cur%offense_commits = cells(2)%s
+      case ('Remediation');      cur%remediation = cells(2)%s
+      case ('Evidence commits'); cur%evidence_commits = cells(2)%s
+      case ('Status');           cur%status = cells(2)%s
+      end select
+    end do
+    if (in_chapter .and. open_entry) call close_entry(cur, entries, wellformed)
+    if (.not. chapter_seen) wellformed = .false.
+  end subroutine ledger_committed
+
+  subroutine blank_entry(cur)
+    type(committed_t), intent(out) :: cur
+    cur%title = ''; cur%date = ''; cur%offense = ''; cur%consequence = ''
+    cur%exec_lines = ''; cur%offense_commits = ''; cur%remediation = ''
+    cur%evidence_commits = ''; cur%status = ''
+  end subroutine blank_entry
+
+  !> Append the entry and judge its completeness. An entry missing any
+  !> field, or bearing a non-numeric line count, condemns the chapter.
+  subroutine close_entry(cur, entries, wellformed)
+    type(committed_t), intent(in) :: cur
+    type(committed_t), allocatable, intent(inout) :: entries(:)
+    logical, intent(inout) :: wellformed
+    type(committed_t), allocatable :: tmp(:)
+    integer :: n
+    n = size(entries)
+    allocate (tmp(n + 1))
+    tmp(1:n) = entries
+    tmp(n + 1) = cur
+    call move_alloc(tmp, entries)
+    if (len(cur%title) == 0 .or. len(cur%date) == 0 .or. &
+        len(cur%offense) == 0 .or. len(cur%consequence) == 0 .or. &
+        len(cur%exec_lines) == 0 .or. len(cur%offense_commits) == 0 .or. &
+        len(cur%remediation) == 0 .or. len(cur%evidence_commits) == 0 .or. &
+        len(cur%status) == 0) then
+      wellformed = .false.
+    else if (verify(cur%exec_lines, '0123456789') /= 0) then
+      wellformed = .false.
+    end if
+  end subroutine close_entry
+
+  !> The non-overlapping totals: an entry whose status proclaims neither
+  !> expiation nor forward correction stands unresolved.
+  pure subroutine committed_counts(entries, n_unresolved, n_corrected)
+    type(committed_t), intent(in) :: entries(:)
+    integer, intent(out) :: n_unresolved, n_corrected
+    integer :: i
+    n_unresolved = 0
+    n_corrected = 0
+    do i = 1, size(entries)
+      if (index(entries(i)%status, 'EXPIATED') > 0 .or. &
+          index(entries(i)%status, 'CORRECTED') > 0) then
+        n_corrected = n_corrected + 1
+      else
+        n_unresolved = n_unresolved + 1
+      end if
+    end do
+  end subroutine committed_counts
+
+  !> Every maximal run of at least seven hex digits in the text: the
+  !> commit hashes of a ledger cell, however many it carries.
+  subroutine extract_hashes(text, hashes)
+    character(*), intent(in) :: text
+    type(string_t), allocatable, intent(out) :: hashes(:)
+    integer :: i, run_start
+    logical :: in_run
+    allocate (hashes(0))
+    in_run = .false.
+    run_start = 0
+    do i = 1, len(text) + 1
+      if (i <= len(text)) then
+        if (is_hex(text(i:i))) then
+          if (.not. in_run) then
+            in_run = .true.
+            run_start = i
+          end if
+          cycle
+        end if
+      end if
+      if (in_run) then
+        if (i - run_start >= 7) call push_string(hashes, text(run_start:i - 1))
+        in_run = .false.
+      end if
+    end do
+  end subroutine extract_hashes
+
+  pure function is_hex(c) result(r)
+    character(1), intent(in) :: c
+    logical :: r
+    r = (c >= '0' .and. c <= '9') .or. (c >= 'a' .and. c <= 'f')
+  end function is_hex
+
+  !> Read the boundary chapter: every external program the Cathedral
+  !> stands upon, named, counted, and justified.
+  subroutine ledger_boundaries(lines, entries, wellformed)
+    type(string_t), intent(in) :: lines(:)
+    type(boundary_t), allocatable, intent(out) :: entries(:)
+    logical, intent(out) :: wellformed
+    type(string_t), allocatable :: cells(:)
+    type(boundary_t), allocatable :: tmp(:)
     integer :: i, n
     logical :: in_chapter, chapter_seen
     character(:), allocatable :: line, cell
@@ -149,7 +306,7 @@ contains
     do i = 1, size(lines)
       line = trim(adjustl(lines(i)%s))
       if (starts_with(line, '## ')) then
-        in_chapter = (line == '## Operational transgressions')
+        in_chapter = (line == '## Necessary platform boundaries')
         if (in_chapter) chapter_seen = .true.
         cycle
       end if
@@ -160,31 +317,23 @@ contains
       if (size(cells) == 0) cycle
       cell = cells(1)%s
       if (len(cell) == 0) cycle
-      if (cell == 'Date' .or. cell == 'None') cycle
+      if (cell == 'Boundary') cycle
       if (verify(cell, '-: ') == 0) cycle
-      if (size(cells) < 7) then
+      if (size(cells) < 3) then
         wellformed = .false.
         cycle
       end if
       n = size(entries)
       allocate (tmp(n + 1))
       tmp(1:n) = entries
-      tmp(n + 1)%date = cells(1)%s
-      tmp(n + 1)%event = cells(2)%s
-      tmp(n + 1)%commit = cells(3)%s
-      tmp(n + 1)%exec_lines = cells(4)%s
-      tmp(n + 1)%why = cells(5)%s
-      tmp(n + 1)%remediation = cells(6)%s
-      tmp(n + 1)%status = cells(7)%s
+      tmp(n + 1)%name = cells(1)%s
+      tmp(n + 1)%role = cells(2)%s
+      tmp(n + 1)%why = cells(3)%s
       call move_alloc(tmp, entries)
-      if (len(cells(4)%s) == 0) then
-        wellformed = .false.
-      else if (verify(cells(4)%s, '0123456789') /= 0) then
-        wellformed = .false.
-      end if
     end do
     if (.not. chapter_seen) wellformed = .false.
-  end subroutine ledger_transgressions
+    if (size(entries) == 0) wellformed = .false.
+  end subroutine ledger_boundaries
 
   !> Read the expiation record, if one exists. found requires the
   !> chapter plus both commit hashes.
@@ -377,60 +526,79 @@ contains
       exit_code = EXIT_OK
     end if
 
-    call report_transgressions(ledger, exit_code)
+    call report_accounting(ledger, size(entries), total, exit_code)
   end subroutine run_confess
 
-  !> The operational chapter, read aloud and structurally verified.
-  !> Recorded transgressions are history, not failure; a missing or
-  !> malformed chapter is failure.
-  subroutine report_transgressions(ledger, exit_code)
+  !> The full accounting, in clear and non-overlapping totals: measured
+  !> executable lines, recorded necessary impurities, recorded platform
+  !> boundaries, and the committed heresies with their resolutions.
+  !> Recorded heresy is history, not failure; a missing or malformed
+  !> chapter is failure.
+  subroutine report_accounting(ledger, n_necessary, exec_total, exit_code)
     type(string_t), intent(in) :: ledger(:)
+    integer, intent(in) :: n_necessary, exec_total
     integer, intent(inout) :: exit_code
-    type(transgression_t), allocatable :: trans(:)
-    logical :: wellformed
-    integer :: i
-    character(:), allocatable :: short
-    call ledger_transgressions(ledger, trans, wellformed)
+    type(boundary_t), allocatable :: bounds(:)
+    type(committed_t), allocatable :: committed(:)
+    logical :: b_ok, c_ok
+    integer :: i, n_unres, n_corr
     call blank()
-    if (.not. wellformed) then
-      call lament('THE OPERATIONAL CHAPTER IS MISSING OR MALFORMED.')
+    call ledger_boundaries(ledger, bounds, b_ok)
+    if (.not. b_ok) then
+      call lament('THE BOUNDARY CHAPTER IS MISSING OR MALFORMED.')
       exit_code = EXIT_FAIL
       return
     end if
-    call say('OPERATIONAL TRANSGRESSIONS RECORDED: ' // &
-             int_to_str(size(trans)) // '.')
-    do i = 1, size(trans)
-      short = trans(i)%commit
-      if (len(short) > 8) short = short(1:8)
-      call say('    ' // trans(i)%date // '  ' // short // '  ' // trans(i)%status)
+    call ledger_committed(ledger, committed, c_ok)
+    if (.not. c_ok) then
+      call lament('THE COMMITTED CHAPTER IS MISSING OR MALFORMED.')
+      exit_code = EXIT_FAIL
+      return
+    end if
+    call committed_counts(committed, n_unres, n_corr)
+    call say('THE ACCOUNTING OF HERESY.')
+    call verdict('EXECUTABLE HERESY.', int_to_str(exec_total) // &
+                 ' LINES, MEASURED FROM FILES ALONE.')
+    call verdict('NECESSARY IMPURITIES.', int_to_str(n_necessary) // &
+                 ' EXECUTABLE, RECORDED.')
+    call verdict('PLATFORM BOUNDARIES.', int_to_str(size(bounds)) // &
+                 ' NECESSARY, RECORDED.')
+    call verdict('COMMITTED HERESIES.', int_to_str(size(committed)) // &
+                 ' RECORDED. ' // int_to_str(n_unres) // ' UNRESOLVED. ' // &
+                 int_to_str(n_corr) // ' CORRECTED OR EXPIATED.')
+    do i = 1, size(committed)
+      call say('    ' // int_to_str(i) // '. ' // committed(i)%title // &
+               '  --  ' // committed(i)%status)
     end do
-    call say('THE OPERATIONAL RECORD IS ACKNOWLEDGED.')
-    call report_expiation(ledger, trans, exit_code)
-  end subroutine report_transgressions
+    if (n_unres > 0) then
+      call say('AN UNRESOLVED COMMITTED HERESY STANDS. REMEDIATION IS OWED.')
+    end if
+    call say('THE COMMITTED RECORD IS ACKNOWLEDGED.')
+    call report_expiation(ledger, committed, exit_code)
+  end subroutine report_accounting
 
-  !> An expiated transgression demands its expiation record, and an
-  !> expiation record demands an expiated transgression. Either alone
-  !> is a ledger fault.
-  subroutine report_expiation(ledger, trans, exit_code)
+  !> An expiated heresy demands its expiation record, and an expiation
+  !> record demands an expiated heresy. Either alone is a ledger fault.
+  subroutine report_expiation(ledger, committed, exit_code)
     type(string_t), intent(in) :: ledger(:)
-    type(transgression_t), intent(in) :: trans(:)
+    type(committed_t), intent(in) :: committed(:)
     integer, intent(inout) :: exit_code
     type(expiation_t) :: exp
     logical :: found, any_expiated
     integer :: i
     character(:), allocatable :: w8, r8
     any_expiated = .false.
-    do i = 1, size(trans)
-      if (index(trans(i)%status, 'EXPIATED') > 0) any_expiated = .true.
+    do i = 1, size(committed)
+      if (index(committed(i)%status, 'EXPIATED') > 0) any_expiated = .true.
     end do
     call ledger_expiation(ledger, exp, found)
     if (any_expiated .and. .not. found) then
-      call lament('A TRANSGRESSION CLAIMS EXPIATION BUT NO EXPIATION RECORD EXISTS.')
+      call lament('A HERESY CLAIMS EXPIATION BUT NO EXPIATION RECORD EXISTS.')
       exit_code = EXIT_FAIL
       return
     end if
     if (found .and. .not. any_expiated) then
-      call lament('AN EXPIATION RECORD EXISTS FOR NO EXPIATED TRANSGRESSION.')
+      call lament('AN EXPIATION RECORD EXISTS FOR NO EXPIATED HERESY.')
       exit_code = EXIT_FAIL
       return
     end if
