@@ -72,7 +72,11 @@ pre {
 }
 pre.terminal { color: var(--accent-2); }
 code { font-family: var(--font-liturgy); }
-table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+table {
+  border-collapse: collapse; width: 100%; font-size: 0.95rem;
+  display: block; overflow-x: auto;
+}
+td code, th code { overflow-wrap: anywhere; }
 caption {
   font-family: var(--font-liturgy); text-transform: uppercase;
   letter-spacing: 0.1em; font-size: 0.8rem; text-align: left;
