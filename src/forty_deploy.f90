@@ -389,45 +389,46 @@ contains
     end if
     call say('THE CANONICAL ADDRESS AGREES.')
 
-    ! 9. The public fabric itself, fetched and read.
+    ! 9. The public fabric itself, fetched and read. The forge may still
+    ! be publishing an earlier route while caching another, so the gate
+    ! demands the WHOLE route set live and marked, sweeping patiently.
     call blank()
-    call say('AWAITING THE PUBLIC FABRIC...')
+    call say('AWAITING THE PUBLIC FABRIC (ALL ' // int_to_str(size(rs)) // &
+             ' ROUTES)...')
     live = .false.
     do attempt = 1, 9
-      if (fetch_ok(CANON_BASE_URL // '/index.html', doc)) then
-        if (count_substr(doc, '<meta name="generator" content="FORTY ') >= 1) then
-          live = .true.
+      live = .true.
+      do i = 1, size(rs)
+        if (.not. fetch_ok(CANON_BASE_URL // '/' // rs(i)%file, doc)) then
+          live = .false.
           exit
         end if
+        if (count_substr(doc, '<meta name="generator" content="FORTY ') /= 1) then
+          live = .false.
+          exit
+        end if
+      end do
+      if (live) then
+        if (.not. fetch_ok(CANON_BASE_URL // '/assets/cathedral.css', doc)) then
+          live = .false.
+        end if
       end if
+      if (live) exit
+      call say('  THE FORGE STILL BURNS (SWEEP ' // int_to_str(attempt) // &
+               ' OF 9)...')
       rr = run_cmd('ping -n 11 127.0.0.1')
     end do
     if (.not. live) then
       call say('THE DOORS ARE UNLOCKED AND APPOINTED, BUT THE PAGES FORGE')
-      call say('STILL BURNS; THE PUBLIC FABRIC IS NOT YET SERVED. THIS IS')
+      call say('STILL BURNS; THE FULL FABRIC IS NOT YET SERVED. THIS IS')
       call say('PROPAGATION, NOT FAILURE. SUMMON forty deploy AGAIN SHORTLY;')
       call say('AN UNCHANGED CATHEDRAL WILL SKIP STRAIGHT TO VERIFICATION.')
       exit_code = EXIT_OK
       return
     end if
     do i = 1, size(rs)
-      if (.not. fetch_ok(CANON_BASE_URL // '/' // rs(i)%file, doc)) then
-        call lament('THE PUBLIC ' // rs(i)%file // ' DID NOT ANSWER.')
-        exit_code = EXIT_EXTERNAL
-        return
-      end if
-      if (count_substr(doc, '<meta name="generator" content="FORTY ') /= 1) then
-        call lament('THE PUBLIC ' // rs(i)%file // ' LACKS THE VERGER''S MARK.')
-        exit_code = EXIT_EXTERNAL
-        return
-      end if
       call say('  LIVE: ' // rs(i)%file)
     end do
-    if (.not. fetch_ok(CANON_BASE_URL // '/assets/cathedral.css', doc)) then
-      call lament('THE PUBLIC STYLESHEET DID NOT ANSWER.')
-      exit_code = EXIT_EXTERNAL
-      return
-    end if
     call say('  LIVE: assets/cathedral.css')
 
     call blank()
