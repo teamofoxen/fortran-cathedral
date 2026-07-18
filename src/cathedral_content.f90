@@ -178,6 +178,7 @@ contains
       'are permanent. This page renders them directly from the ledger, so the ' // &
       'accounting below cannot drift from the record:')
     call transgression_tables(facts, body)
+    call expiation_record(facts, body)
 
     call h2(body, 'The pipeline')
     call para(body, 'There is no framework behind this page. A route registry in ' // &
@@ -250,6 +251,33 @@ contains
       call push_string(body, '</table>')
     end do
   end subroutine transgression_tables
+
+  !> The restitution, when one has been performed: rendered from the
+  !> Ledger's expiation record. The offense is not softened; the means
+  !> of its expiation are stated exactly.
+  subroutine expiation_record(facts, body)
+    type(build_facts_t), intent(in) :: facts
+    type(string_t), allocatable, intent(inout) :: body(:)
+    if (.not. facts%expiated) return
+    call para(body, 'The stain above has been expiated by restitution. Forty ' // &
+      'withdrew the manually presented tree with a forward-only commit, then ' // &
+      'presented the canonical tree anew by his own hand, and advanced the ' // &
+      'branch without force and without rewriting. The transgression itself ' // &
+      'remains in history, unerased, as the record demands:')
+    call push_string(body, '<table>')
+    call push_string(body, '  <caption>The expiation record</caption>')
+    call push_string(body, '  <tbody>')
+    call trans_row(body, 'Expiated transgression', '<code>' // &
+                   escape_html(facts%expiation%offender) // '</code>')
+    call trans_row(body, 'Withdrawal commit', '<code>' // &
+                   escape_html(facts%expiation%withdrawal) // '</code>')
+    call trans_row(body, 'Canonical re-offering commit', '<code>' // &
+                   escape_html(facts%expiation%reoffering) // '</code>')
+    call trans_row(body, 'Means', escape_html(facts%expiation%means))
+    call trans_row(body, 'History', escape_html(facts%expiation%history))
+    call push_string(body, '  </tbody>')
+    call push_string(body, '</table>')
+  end subroutine expiation_record
 
   subroutine trans_row(lines, measure, value_html)
     type(string_t), allocatable, intent(inout) :: lines(:)

@@ -6,6 +6,7 @@ module forty_git
   implicit none
   private
   public :: git_initialized, git_branch, git_remote_url, slug_from_url, valid_slug
+  public :: is_hash
 
 contains
 
@@ -57,6 +58,21 @@ contains
     end do
     slug = rest
   end function slug_from_url
+
+  !> A full SHA-1 object name: forty lowercase hexadecimal characters.
+  pure function is_hash(s) result(ok)
+    character(*), intent(in) :: s
+    logical :: ok
+    integer :: i, c
+    ok = .false.
+    if (len(s) /= 40) return
+    do i = 1, 40
+      c = iachar(s(i:i))
+      if (.not. ((c >= iachar('0') .and. c <= iachar('9')) .or. &
+                 (c >= iachar('a') .and. c <= iachar('f')))) return
+    end do
+    ok = .true.
+  end function is_hash
 
   !> A slug fit to pass to gh: owner/name in modest characters only.
   pure function valid_slug(s) result(ok)

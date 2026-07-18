@@ -12,6 +12,7 @@ module forty_confess
   public :: CLASS_FORTRAN, CLASS_DECLARATIVE, CLASS_HERESY, CLASS_OTHER
   public :: classify, ledger_entries, list_repo_files, run_confess, heresy_summary
   public :: transgression_t, ledger_transgressions, split_cells
+  public :: expiation_t, ledger_expiation
 
   integer, parameter :: CLASS_FORTRAN = 1, CLASS_DECLARATIVE = 2
   integer, parameter :: CLASS_HERESY = 3, CLASS_OTHER = 4
@@ -27,6 +28,16 @@ module forty_confess
     character(:), allocatable :: remediation
     character(:), allocatable :: status
   end type transgression_t
+
+  !> The record of a restitution: how a stain was expiated without
+  !> erasing, amending, squashing, or rewriting anything.
+  type :: expiation_t
+    character(:), allocatable :: offender
+    character(:), allocatable :: withdrawal
+    character(:), allocatable :: reoffering
+    character(:), allocatable :: means
+    character(:), allocatable :: history
+  end type expiation_t
 
 contains
 
@@ -174,6 +185,41 @@ contains
     end do
     if (.not. chapter_seen) wellformed = .false.
   end subroutine ledger_transgressions
+
+  !> Read the expiation record, if one exists. found requires the
+  !> chapter plus both commit hashes.
+  subroutine ledger_expiation(lines, exp, found)
+    type(string_t), intent(in) :: lines(:)
+    type(expiation_t), intent(out) :: exp
+    logical, intent(out) :: found
+    type(string_t), allocatable :: cells(:)
+    integer :: i
+    logical :: in_chapter
+    character(:), allocatable :: line
+    exp%offender = ''; exp%withdrawal = ''; exp%reoffering = ''
+    exp%means = ''; exp%history = ''
+    in_chapter = .false.
+    do i = 1, size(lines)
+      line = trim(adjustl(lines(i)%s))
+      if (starts_with(line, '## ')) then
+        in_chapter = (line == '## Expiation record')
+        cycle
+      end if
+      if (.not. in_chapter) cycle
+      if (len(line) < 2) cycle
+      if (line(1:1) /= '|') cycle
+      call split_cells(line, cells)
+      if (size(cells) < 2) cycle
+      select case (cells(1)%s)
+      case ('Expiated transgression');       exp%offender = cells(2)%s
+      case ('Withdrawal commit');            exp%withdrawal = cells(2)%s
+      case ('Canonical re-offering commit'); exp%reoffering = cells(2)%s
+      case ('Means');                        exp%means = cells(2)%s
+      case ('History');                      exp%history = cells(2)%s
+      end select
+    end do
+    found = (len(exp%withdrawal) > 0 .and. len(exp%reoffering) > 0)
+  end subroutine ledger_expiation
 
   !> Split one '|'-fenced table row into trimmed cells, backticks shed.
   subroutine split_cells(line, cells)
@@ -359,7 +405,44 @@ contains
       call say('    ' // trans(i)%date // '  ' // short // '  ' // trans(i)%status)
     end do
     call say('THE OPERATIONAL RECORD IS ACKNOWLEDGED.')
+    call report_expiation(ledger, trans, exit_code)
   end subroutine report_transgressions
+
+  !> An expiated transgression demands its expiation record, and an
+  !> expiation record demands an expiated transgression. Either alone
+  !> is a ledger fault.
+  subroutine report_expiation(ledger, trans, exit_code)
+    type(string_t), intent(in) :: ledger(:)
+    type(transgression_t), intent(in) :: trans(:)
+    integer, intent(inout) :: exit_code
+    type(expiation_t) :: exp
+    logical :: found, any_expiated
+    integer :: i
+    character(:), allocatable :: w8, r8
+    any_expiated = .false.
+    do i = 1, size(trans)
+      if (index(trans(i)%status, 'EXPIATED') > 0) any_expiated = .true.
+    end do
+    call ledger_expiation(ledger, exp, found)
+    if (any_expiated .and. .not. found) then
+      call lament('A TRANSGRESSION CLAIMS EXPIATION BUT NO EXPIATION RECORD EXISTS.')
+      exit_code = EXIT_FAIL
+      return
+    end if
+    if (found .and. .not. any_expiated) then
+      call lament('AN EXPIATION RECORD EXISTS FOR NO EXPIATED TRANSGRESSION.')
+      exit_code = EXIT_FAIL
+      return
+    end if
+    if (found) then
+      w8 = exp%withdrawal
+      r8 = exp%reoffering
+      if (len(w8) > 8) w8 = w8(1:8)
+      if (len(r8) > 8) r8 = r8(1:8)
+      call say('THE EXPIATION RECORD IS ACKNOWLEDGED: WITHDRAWN ' // w8 // &
+               ', PRESENTED ANEW ' // r8 // '.')
+    end if
+  end subroutine report_expiation
 
   !> Slashes bow to one direction; case bows to none.
   pure function norm_path(p) result(r)

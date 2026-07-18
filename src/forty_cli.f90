@@ -9,7 +9,7 @@ module forty_cli
   public :: cli_t, parse_cli
   public :: CMD_NONE, CMD_HELP, CMD_VERSION, CMD_STATUS, CMD_DOCTOR, CMD_BUILD
   public :: CMD_TEST, CMD_CONFESS, CMD_CLEAN, CMD_GITHUB, CMD_UNKNOWN
-  public :: CMD_GENERATE, CMD_VALIDATE, CMD_OPEN, CMD_OFFER
+  public :: CMD_GENERATE, CMD_VALIDATE, CMD_OPEN, CMD_OFFER, CMD_ATONE
   public :: SUB_NONE, SUB_STATUS, SUB_CONNECT, SUB_VERIFY, SUB_UNKNOWN
   public :: valid_repo_name, valid_owner_name, valid_description, valid_visibility
   public :: valid_commit_message
@@ -19,7 +19,7 @@ module forty_cli
   integer, parameter :: CMD_TEST = 6, CMD_CONFESS = 7, CMD_CLEAN = 8
   integer, parameter :: CMD_GITHUB = 9, CMD_UNKNOWN = 99
   integer, parameter :: CMD_GENERATE = 11, CMD_VALIDATE = 12, CMD_OPEN = 13
-  integer, parameter :: CMD_OFFER = 14
+  integer, parameter :: CMD_OFFER = 14, CMD_ATONE = 15
   integer, parameter :: SUB_NONE = 0, SUB_STATUS = 1, SUB_CONNECT = 2
   integer, parameter :: SUB_VERIFY = 3, SUB_UNKNOWN = 99
 
@@ -37,6 +37,7 @@ module forty_cli
     character(:), allocatable :: description
     character(:), allocatable :: visibility
     character(:), allocatable :: message
+    character(:), allocatable :: rite
     character(:), allocatable :: errmsg
   end type cli_t
 
@@ -53,6 +54,7 @@ contains
     cli%description = CANON_DESCRIPTION
     cli%visibility = 'public'
     cli%message = ''
+    cli%rite = ''
     cli%errmsg = ''
 
     if (size(argv) == 0) then
@@ -75,6 +77,7 @@ contains
     case ('validate'); cli%command = CMD_VALIDATE
     case ('open');     cli%command = CMD_OPEN
     case ('offer');    cli%command = CMD_OFFER
+    case ('atone');    cli%command = CMD_ATONE
     case default
       cli%command = CMD_UNKNOWN
       cli%errmsg = 'UNKNOWN COMMAND: ' // argv(1)%s
@@ -97,6 +100,19 @@ contains
         cli%errmsg = 'UNKNOWN GITHUB SUBCOMMAND: ' // argv(2)%s
         return
       end select
+      i = 3
+    end if
+
+    if (cli%command == CMD_ATONE) then
+      if (size(argv) < 2) then
+        cli%errmsg = 'ATONE REQUIRES A RITE NAME: phase-1-manual-offering'
+        return
+      end if
+      if (starts_with(argv(2)%s, '--')) then
+        cli%errmsg = 'ATONE REQUIRES A RITE NAME BEFORE ITS OPTIONS.'
+        return
+      end if
+      cli%rite = to_lower(argv(2)%s)
       i = 3
     end if
 

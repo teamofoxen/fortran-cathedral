@@ -15,6 +15,7 @@ program forty
   use cathedral_generate, only: run_generate, run_open
   use cathedral_validate, only: run_validate
   use forty_offer, only: run_offer
+  use forty_atone, only: run_atone
   implicit none
 
   type(string_t), allocatable :: argv(:)
@@ -41,7 +42,7 @@ program forty
   ! from its root. The doctor and the help desk see visitors anywhere.
   select case (cli%command)
   case (CMD_STATUS, CMD_BUILD, CMD_TEST, CMD_CONFESS, CMD_CLEAN, CMD_GITHUB, &
-        CMD_GENERATE, CMD_VALIDATE, CMD_OPEN, CMD_OFFER)
+        CMD_GENERATE, CMD_VALIDATE, CMD_OPEN, CMD_OFFER, CMD_ATONE)
     if (.not. in_cathedral_root()) then
       call lament('FORTY SERVES ONE CATHEDRAL. INVOKE HIM FROM ITS ROOT')
       call say('(THE DIRECTORY HOLDING CLAUDE.md, FORTY.md, AND fpm.toml).')
@@ -63,6 +64,7 @@ program forty
   case (CMD_VALIDATE); call run_validate(code)
   case (CMD_OPEN);     call run_open(code)
   case (CMD_OFFER);    call run_offer(cli, code)
+  case (CMD_ATONE);    call run_atone(cli, code)
   case (CMD_GITHUB)
     select case (cli%subcommand)
     case (SUB_STATUS);  call github_status(code)
@@ -91,6 +93,7 @@ contains
     call say('  validate            SURVEY THE RAISED FABRIC.')
     call say('  open                OPEN THE PORCH IN YOUR BROWSER.')
     call say('  offer               COMMIT AND PUSH THROUGH FORTY. ONE CONFIRMATION.')
+    call say('  atone <rite>        THE RITE OF RESTITUTION. FORWARD-ONLY. NO ERASURE.')
     call say('  clean               SWEEP build\ AND dist\. ASKS FIRST.')
     call say('  github status       REPORT THE GATEHOUSE.')
     call say('  github connect      THE CONSECRATION RITE. ONE CONFIRMATION.')

@@ -4,7 +4,8 @@
 module cathedral_facts
   use forty_util, only: string_t
   use forty_confess, only: heresy_summary, list_repo_files, classify, &
-                           CLASS_FORTRAN, transgression_t, ledger_transgressions
+                           CLASS_FORTRAN, transgression_t, ledger_transgressions, &
+                           expiation_t, ledger_expiation
   use forty_run, only: read_all_lines
   use forty_canon, only: FORTY_VERSION
   implicit none
@@ -18,6 +19,8 @@ module cathedral_facts
     integer :: route_count = 0
     character(:), allocatable :: generator
     type(transgression_t), allocatable :: trans(:)
+    type(expiation_t) :: expiation
+    logical :: expiated = .false.
   end type build_facts_t
 
 contains
@@ -43,6 +46,7 @@ contains
     ! Generation is lenient here; forty confess is the enforcer.
     call read_all_lines('HERESY_LEDGER.md', ledger)
     call ledger_transgressions(ledger, facts%trans, wellformed)
+    call ledger_expiation(ledger, facts%expiation, facts%expiated)
   end subroutine gather_facts
 
 end module cathedral_facts

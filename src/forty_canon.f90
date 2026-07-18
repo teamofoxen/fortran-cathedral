@@ -4,10 +4,10 @@ module forty_canon
   implicit none
   private
   public :: FORTY_VERSION, CANON_REPO_NAME, CANON_DESCRIPTION, CANON_BASE_URL
-  public :: CANON_COMMIT_MSG, CANON_COMMIT_TRAILER
+  public :: CANON_COMMIT_MSG, CANON_COMMIT_TRAILER, CANON_OFFENDING_COMMIT
   public :: EXIT_OK, EXIT_FAIL, EXIT_USAGE, EXIT_ENV, EXIT_EXTERNAL, EXIT_DECLINED
 
-  character(*), parameter :: FORTY_VERSION = '0.2.1'
+  character(*), parameter :: FORTY_VERSION = '0.2.2'
 
   !> The intended canonical home of the generated site. Deployment is a
   !> later phase; the sitemap and robots.txt speak of this address in
@@ -21,6 +21,11 @@ module forty_canon
   character(*), parameter :: CANON_COMMIT_MSG = 'PHASE 0: FORTY IS ORDAINED.'
   character(*), parameter :: CANON_COMMIT_TRAILER = &
     'Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>'
+
+  !> The Phase 1 tree entered the canonical remote through a manual
+  !> offering. This is that commit. It is not erased; it is atoned for.
+  character(*), parameter :: CANON_OFFENDING_COMMIT = &
+    'd2c9f0be63f28b7ecf136c1b9b81a7bd993132db'
 
   integer, parameter :: EXIT_OK       = 0  ! the rite concluded
   integer, parameter :: EXIT_FAIL     = 1  ! general failure or wrong ground

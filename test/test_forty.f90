@@ -45,25 +45,34 @@ program test_forty
   use test_kit
   use forty_util
   use forty_cli
-  use forty_paths, only: quote, temp_root
-  use forty_run, only: run_result, run_cmd, read_all_lines, write_lines, delete_file
+  use forty_paths, only: quote, temp_root, set_cwd
+  use forty_run, only: run_result, run_cmd, read_all_lines, write_lines, &
+                       delete_file, version_line
   use forty_confess, only: classify, ledger_entries, transgression_t, &
                            ledger_transgressions, split_cells, &
+                           expiation_t, ledger_expiation, &
                            CLASS_FORTRAN, CLASS_DECLARATIVE, CLASS_HERESY, CLASS_OTHER
   use forty_offer, only: build_offer_plan, check_offer_ground, &
                          categorize_porcelain, offering_acceptable, &
                          porcelain_path, run_offer
-  use forty_git, only: slug_from_url, valid_slug
+  use forty_git, only: slug_from_url, valid_slug, is_hash
   use forty_github, only: plan_step_t, build_connect_plan, parse_login
   use forty_canon, only: CANON_DESCRIPTION, CANON_BASE_URL
-  use forty_ui, only: set_muted
+  use forty_ui, only: set_muted, set_scripted_confirm, confirm_consult_count, &
+                      SCRIPT_NONE, SCRIPT_NO
   use forty_buildops, only: dir_present
+  use forty_atone, only: perform_restitution, expiate_ledger_lines, STATUS_EXPIATED
   use cathedral_html, only: escape_html, escape_json
   use cathedral_routes, only: route_t, routes, append_nav
   use cathedral_generate, only: run_generate
   use cathedral_validate, only: run_validate
   implicit none
 
+  character(:), allocatable :: saved_root
+  integer, parameter :: ROW_OFFENDER = 1, ROW_NONE = 2, ROW_GHOST = 3, ROW_ROOT = 4
+  character(40), parameter :: GHOST_HASH = repeat('f', 40)
+
+  call capture_root()
   call trial_parse()
   call trial_validators()
   call trial_strings()
@@ -88,6 +97,11 @@ program test_forty
   call trial_residue()
   call trial_offer_ground_and_accord()
   call trial_offer_discipline()
+  call trial_expiate_transform()
+  call trial_restitution_happy()
+  call trial_restitution_dry_and_decline()
+  call trial_restitution_refusals()
+  call trial_restitution_severed()
 
   call summary()
   if (n_fail > 0) call exit(1)
@@ -603,6 +617,330 @@ contains
     call set_muted(.false.)
     call check(code == 0, 'REGENERATION HEALS THE BREACH')
   end subroutine trial_validator_teeth
+
+  ! ------------------------------------------------ the restitution trials
+
+  subroutine capture_root()
+    type(run_result) :: rr
+    rr = run_cmd('cd')
+    saved_root = rr%out(1)%s
+  end subroutine capture_root
+
+  !> Forge an isolated fixture repository with a local bare remote:
+  !> C0 (base) -> C_OFF (offense) -> C_NOW (present), pushed and synced.
+  !> The fixture's ledger records the offense per row_mode. Leaves the
+  !> working directory INSIDE the fixture; callers return to saved_root.
+  subroutine make_fixture(tag, row_mode, c0, c_off, c_now, fx, remote)
+    character(*), intent(in) :: tag
+    integer, intent(in) :: row_mode
+    character(:), allocatable, intent(out) :: c0, c_off, c_now, fx, remote
+    type(run_result) :: rr
+    type(string_t), allocatable :: lines(:)
+    logical :: ok
+    character(:), allocatable :: row_hash
+
+    fx = temp_root() // '\forty_rite_' // tag
+    remote = temp_root() // '\forty_rite_' // tag // '_remote.git'
+    call set_cwd(saved_root, ok)
+    rr = run_cmd('if exist ' // quote(fx // '\') // ' rmdir /s /q ' // quote(fx))
+    rr = run_cmd('if exist ' // quote(remote // '\') // ' rmdir /s /q ' // quote(remote))
+    rr = run_cmd('mkdir ' // quote(fx))
+    rr = run_cmd('git init -q --bare ' // quote(remote))
+    call set_cwd(fx, ok)
+    call check(ok, 'THE FIXTURE GROUND IS ENTERED (' // tag // ')')
+    rr = run_cmd('git init -q -b main')
+    rr = run_cmd('git config user.email trials@cathedral.local')
+    rr = run_cmd('git config user.name "The Trials"')
+    call write_one('a.txt', 'phase zero stone')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "C0"')
+    c0 = version_line('git rev-parse HEAD')
+    call write_one('a.txt', 'offense stone')
+    call write_one('b.txt', 'offense extra')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "OFFENSE"')
+    c_off = version_line('git rev-parse HEAD')
+
+    select case (row_mode)
+    case (ROW_OFFENDER); row_hash = c_off
+    case (ROW_GHOST);    row_hash = GHOST_HASH
+    case (ROW_ROOT);     row_hash = c0
+    case default;        row_hash = ''
+    end select
+    allocate (lines(0))
+    call push_string(lines, '## Current ledger')
+    call push_string(lines, '| File or component | Language | Executable lines | Purpose | Why | Removal |')
+    call push_string(lines, '|---|---:|---:|---|---|---|')
+    call push_string(lines, '| None | - | 0 | - | - | - |')
+    call push_string(lines, '')
+    call push_string(lines, '## Operational transgressions')
+    call push_string(lines, '| Date | Event | Commit | Executable non-Fortran lines introduced | Why | Remediation | Status |')
+    call push_string(lines, '|---|---|---|---:|---|---|---|')
+    if (row_mode /= ROW_NONE) then
+      call push_string(lines, '| 2026-07-18 | A manual offering | `' // row_hash // &
+                       '` | 0 | haste | forty offer | Historical. Disclosed. Not erasable. |')
+    end if
+    call push_string(lines, '')
+    call push_string(lines, '## Rules')
+    call push_string(lines, 'None here.')
+    call write_lines('HERESY_LEDGER.md', lines, ok)
+
+    call write_one('c.txt', 'the present stone')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "NOW"')
+    c_now = version_line('git rev-parse HEAD')
+    rr = run_cmd('git remote add origin ' // quote(remote))
+    rr = run_cmd('git push -q -u origin main')
+    call check(version_line('git rev-parse origin/main') == c_now, &
+               'THE FIXTURE REMOTE IS SYNCED (' // tag // ')')
+  end subroutine make_fixture
+
+  subroutine write_one(path, text)
+    character(*), intent(in) :: path, text
+    type(string_t), allocatable :: lines(:)
+    logical :: ok
+    allocate (lines(1))
+    lines(1)%s = text
+    call write_lines(path, lines, ok)
+  end subroutine write_one
+
+  function fixture_cli(yes, dry) result(c)
+    logical, intent(in) :: yes, dry
+    type(cli_t) :: c
+    c%assume_yes = yes
+    c%dry_run = dry
+    c%message = ''
+    c%rite = 'phase-1-manual-offering'
+  end function fixture_cli
+
+  function ledger_doc() result(doc)
+    character(:), allocatable :: doc
+    type(string_t), allocatable :: lines(:)
+    integer :: i
+    call read_all_lines('HERESY_LEDGER.md', lines)
+    doc = ''
+    do i = 1, size(lines)
+      doc = doc // lines(i)%s // achar(10)
+    end do
+  end function ledger_doc
+
+  subroutine trial_expiate_transform()
+    type(string_t), allocatable :: lines(:), out(:)
+    type(expiation_t) :: exp
+    type(transgression_t), allocatable :: trans(:)
+    logical :: changed, found, wellformed
+    character(40), parameter :: OFF = repeat('a', 40)
+    character(40), parameter :: WH = repeat('b', 40)
+    character(40), parameter :: RH = repeat('c', 40)
+    character(:), allocatable :: doc
+    integer :: i
+
+    allocate (lines(0))
+    call push_string(lines, '## Operational transgressions')
+    call push_string(lines, '| Date | Event | Commit | Executable non-Fortran lines introduced | Why | Remediation | Status |')
+    call push_string(lines, '|---|---|---|---:|---|---|---|')
+    call push_string(lines, '| 2026-07-18 | Manual push | `' // OFF // &
+                     '` | 0 | haste | forty offer | Historical. Disclosed. Not erasable. |')
+    call push_string(lines, '')
+    call push_string(lines, '## Rules')
+    call push_string(lines, 'Prose.')
+    call expiate_ledger_lines(lines, OFF, WH, RH, out, changed)
+    call check(changed, 'THE TRANSFORM REPORTS ITS WORK')
+    doc = ''
+    do i = 1, size(out)
+      doc = doc // out(i)%s // achar(10)
+    end do
+    call check(count_substr(doc, 'EXPIATED, NOT ERASED.') == 1, &
+               'THE STATUS TRANSITIONS EXACTLY ONCE')
+    call check(count_substr(doc, 'Historical. Disclosed. Not erasable.') == 0, &
+               'THE OLD STATUS DEPARTS')
+    call check(index(doc, '## Expiation record') > 0 .and. &
+               index(doc, '## Expiation record') < index(doc, '## Rules'), &
+               'THE RECORD IS INSCRIBED BEFORE THE RULES')
+    call ledger_transgressions(out, trans, wellformed)
+    call check(wellformed .and. size(trans) == 1, 'THE TRANSFORMED CHAPTER STILL PARSES')
+    call ledger_expiation(out, exp, found)
+    call check(found, 'THE EXPIATION RECORD PARSES')
+    if (found) then
+      call check_str(exp%withdrawal, WH, 'THE WITHDRAWAL IS RECORDED')
+      call check_str(exp%reoffering, RH, 'THE RE-OFFERING IS RECORDED')
+      call check(len(exp%means) > 0 .and. len(exp%history) > 0, &
+                 'MEANS AND HISTORY ARE STATED')
+    end if
+    call expiate_ledger_lines(out, OFF, WH, RH, lines, changed)
+    call check(.not. changed, 'AN EXPIATED LEDGER DOES NOT TRANSITION TWICE')
+  end subroutine trial_expiate_transform
+
+  subroutine trial_restitution_happy()
+    character(:), allocatable :: c0, coff, cnow, fx, remote
+    character(:), allocatable :: w, r, w2, r2, tree_c0, tree_now, doc
+    type(cli_t) :: c
+    type(run_result) :: rr
+    integer :: code, i
+    logical :: ok, clean
+
+    call make_fixture('happy', ROW_OFFENDER, c0, coff, cnow, fx, remote)
+    tree_c0 = version_line('git rev-parse ' // coff // '~1:')
+    tree_now = version_line('git rev-parse HEAD:')
+    c = fixture_cli(.true., .false.)
+    call set_scripted_confirm(SCRIPT_NONE)
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code == 0, 'THE FIXTURE RESTITUTION CONCLUDES')
+    call check(is_hash(w) .and. is_hash(r), 'BOTH EXPIATION COMMITS ARE NAMED')
+    call check(confirm_consult_count() == 1, 'ONE CONFIRMATION SERVED THE WHOLE RITE')
+    call check(version_line('git rev-parse HEAD') == r, 'HEAD STANDS AT THE RE-OFFERING')
+    call check(version_line('git rev-parse HEAD~1') == w, 'THE WITHDRAWAL PRECEDES IT')
+    call check(version_line('git rev-parse HEAD~2') == cnow, &
+               'THE PRESENT PRECEDES THE WITHDRAWAL: FORWARD ONLY')
+    call check(version_line('git rev-parse ' // w // ':') == tree_c0, &
+               'THE WITHDRAWN TREE IS THE PREDECESSOR TREE')
+    call check(version_line('git rev-parse ' // r // ':') == tree_now, &
+               'THE RE-OFFERED TREE IS THE CANONICAL TREE, BYTE FOR BYTE')
+    call check(version_line('git rev-parse origin/main') == r, &
+               'THE REMOTE RECEIVED THE RE-OFFERING')
+    call check(version_line('git rev-parse origin/main~1') == w, &
+               'THE REMOTE RECEIVED THE WITHDRAWAL')
+    ! After the rite, exactly one uncommitted change exists: the ledger's
+    ! new truth, awaiting its offering. The checked-out files themselves
+    ! never passed through the withdrawn state.
+    rr = run_cmd('git status --porcelain')
+    clean = .true.
+    do i = 1, size(rr%out)
+      if (len_trim(rr%out(i)%s) > 0) then
+        if (index(rr%out(i)%s, 'HERESY_LEDGER.md') == 0) clean = .false.
+      end if
+    end do
+    call check(clean, 'ONLY THE LEDGER AWAITS ITS OFFERING')
+    call check(exists('c.txt'), &
+               'THE TREE NEVER PASSED THROUGH THE WITHDRAWN STATE')
+    doc = ledger_doc()
+    call check(index(doc, 'EXPIATED, NOT ERASED.') > 0 .and. &
+               index(doc, w) > 0 .and. index(doc, r) > 0, &
+               'THE FIXTURE LEDGER RECORDS THE FULL RESTITUTION')
+    ! Seal the ledger as the real rite's concluding offering would, then
+    ! confirm an expiated stain atones no further.
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "RECORD"')
+    rr = run_cmd('git push -q')
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w2, r2, code)
+    call set_muted(.false.)
+    call check(code == 0 .and. len(w2) == 0, 'AN EXPIATED STAIN ATONES NO FURTHER')
+    call set_cwd(saved_root, ok)
+  end subroutine trial_restitution_happy
+
+  subroutine trial_restitution_dry_and_decline()
+    character(:), allocatable :: c0, coff, cnow, fx, remote, w, r, doc
+    type(cli_t) :: c
+    integer :: code
+    logical :: ok
+
+    call make_fixture('dry', ROW_OFFENDER, c0, coff, cnow, fx, remote)
+    c = fixture_cli(.false., .true.)
+    call set_scripted_confirm(SCRIPT_NONE)
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code == 0 .and. len(w) == 0, 'THE DRY RITE CONCLUDES IN PEACE')
+    call check(confirm_consult_count() == 0, 'THE DRY RITE ASKS NOTHING')
+    call check(version_line('git rev-parse HEAD') == cnow, 'THE DRY RITE MOVED NOTHING')
+    call check(version_line('git rev-parse origin/main') == cnow, &
+               'THE DRY RITE LIFTED NOTHING')
+    doc = ledger_doc()
+    call check(index(doc, 'Not erasable.') > 0 .and. index(doc, 'EXPIATED') == 0, &
+               'THE DRY RITE INSCRIBED NOTHING')
+
+    call set_scripted_confirm(SCRIPT_NO)
+    c = fixture_cli(.false., .false.)
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code == 5, 'A WITHHELD CONFIRMATION DEFERS THE RITE')
+    call check(confirm_consult_count() == 1, 'EXACTLY ONE CONFIRMATION WAS SOUGHT')
+    call check(version_line('git rev-parse HEAD') == cnow, 'DEFERRAL MOVED NOTHING')
+    call set_scripted_confirm(SCRIPT_NONE)
+    call set_cwd(saved_root, ok)
+  end subroutine trial_restitution_dry_and_decline
+
+  subroutine trial_restitution_refusals()
+    character(:), allocatable :: c0, coff, cnow, fx, remote, w, r
+    type(cli_t) :: c
+    type(run_result) :: rr
+    integer :: code
+    logical :: ok
+
+    ! The ledger does not record the offense.
+    call make_fixture('norec', ROW_NONE, c0, coff, cnow, fx, remote)
+    c = fixture_cli(.true., .false.)
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code /= 0, 'AN UNRECORDED OFFENSE CANNOT BE ATONED')
+    call check(version_line('git rev-parse HEAD') == cnow, 'AND NOTHING MOVED (NOREC)')
+
+    ! The recorded commit does not exist.
+    call make_fixture('ghost', ROW_GHOST, c0, coff, cnow, fx, remote)
+    call set_muted(.true.)
+    call perform_restitution(c, GHOST_HASH, w, r, code)
+    call set_muted(.false.)
+    call check(code /= 0, 'A GHOST OFFENSE CANNOT BE ATONED')
+    call check(version_line('git rev-parse HEAD') == cnow, 'AND NOTHING MOVED (GHOST)')
+
+    ! The tree is unclean.
+    call make_fixture('dirty', ROW_OFFENDER, c0, coff, cnow, fx, remote)
+    call write_one('uncommitted.txt', 'dust')
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code /= 0, 'AN UNCLEAN TREE REFUSES THE RITE')
+    call check(version_line('git rev-parse HEAD') == cnow, 'AND NOTHING MOVED (DIRTY)')
+
+    ! Local and remote are not of one accord.
+    call make_fixture('ahead', ROW_OFFENDER, c0, coff, cnow, fx, remote)
+    call write_one('d.txt', 'unpushed stone')
+    rr = run_cmd('git add -A')
+    rr = run_cmd('git commit -q -m "AHEAD"')
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code /= 0, 'A BROKEN ACCORD REFUSES THE RITE')
+    call check(version_line('git rev-parse origin/main') == cnow, &
+               'AND THE REMOTE NEVER MOVED (AHEAD)')
+
+    ! The offense is the root commit: no predecessor tree exists.
+    call make_fixture('root', ROW_ROOT, c0, coff, cnow, fx, remote)
+    call set_scripted_confirm(SCRIPT_NONE)
+    call set_muted(.true.)
+    call perform_restitution(c, c0, w, r, code)
+    call set_muted(.false.)
+    call check(code /= 0, 'A ROOT OFFENSE HAS NO PREDECESSOR TO RESTORE')
+    call check(confirm_consult_count() == 0, &
+               'THE FAULT WAS FOUND BEFORE ANY CONFIRMATION')
+    call check(version_line('git rev-parse HEAD') == cnow, 'AND NOTHING MOVED (ROOT)')
+    call set_cwd(saved_root, ok)
+  end subroutine trial_restitution_refusals
+
+  subroutine trial_restitution_severed()
+    character(:), allocatable :: c0, coff, cnow, fx, remote, w, r, doc
+    type(cli_t) :: c
+    type(run_result) :: rr
+    integer :: code
+    logical :: ok
+
+    call make_fixture('sever', ROW_OFFENDER, c0, coff, cnow, fx, remote)
+    rr = run_cmd('rmdir /s /q ' // quote(remote))
+    c = fixture_cli(.true., .false.)
+    call set_muted(.true.)
+    call perform_restitution(c, coff, w, r, code)
+    call set_muted(.false.)
+    call check(code /= 0, 'A SEVERED REMOTE HALTS THE RITE AT THE LIFT')
+    doc = ledger_doc()
+    call check(index(doc, 'EXPIATED') == 0, &
+               'THE LEDGER WAITS WHEN THE LIFT FAILS')
+    call set_cwd(saved_root, ok)
+  end subroutine trial_restitution_severed
 
   function exists(path) result(r)
     character(*), intent(in) :: path

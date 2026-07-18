@@ -8,7 +8,8 @@ module cathedral_validate
   use forty_paths, only: file_exists
   use forty_run, only: run_result, run_cmd, read_all_lines
   use forty_canon, only: EXIT_OK, EXIT_FAIL, CANON_BASE_URL
-  use forty_confess, only: transgression_t, ledger_transgressions
+  use forty_confess, only: transgression_t, ledger_transgressions, &
+                           expiation_t, ledger_expiation
   use cathedral_routes, only: route_t, routes
   implicit none
   private
@@ -106,20 +107,35 @@ contains
   subroutine check_operational_record()
     type(string_t), allocatable :: ledger(:)
     type(transgression_t), allocatable :: trans(:)
-    logical :: wellformed
+    type(expiation_t) :: exp
+    logical :: wellformed, exp_found, any_expiated
     character(:), allocatable :: page
     integer :: i
     call read_all_lines('HERESY_LEDGER.md', ledger)
     call ledger_transgressions(ledger, trans, wellformed)
     call check(wellformed, 'THE OPERATIONAL CHAPTER IS PRESENT AND WELL-FORMED')
     page = slurp('dist\confessional.html')
+    any_expiated = .false.
     do i = 1, size(trans)
+      if (index(trans(i)%status, 'EXPIATED') > 0) any_expiated = .true.
       if (len(trans(i)%commit) >= 7) then
         call check(count_substr(page, trans(i)%commit) >= 1, &
                    'THE CONFESSIONAL DISPLAYS TRANSGRESSION ' // int_to_str(i) // &
                    ' (' // trans(i)%commit(1:7) // ')')
       end if
     end do
+    if (any_expiated) then
+      call ledger_expiation(ledger, exp, exp_found)
+      call check(exp_found, 'THE EXPIATION RECORD ACCOMPANIES THE EXPIATED STAIN')
+      if (exp_found) then
+        call check(count_substr(page, exp%withdrawal) >= 1, &
+                   'THE CONFESSIONAL DISPLAYS THE WITHDRAWAL COMMIT')
+        call check(count_substr(page, exp%reoffering) >= 1, &
+                   'THE CONFESSIONAL DISPLAYS THE RE-OFFERING COMMIT')
+        call check(count_substr(page, 'EXPIATED, NOT ERASED') >= 1, &
+                   'THE CONFESSIONAL PROCLAIMS: EXPIATED, NOT ERASED')
+      end if
+    end if
   end subroutine check_operational_record
 
   subroutine check(cond, label)

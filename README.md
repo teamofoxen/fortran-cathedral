@@ -30,6 +30,7 @@ forty generate            RAISE THE SITE INTO dist\.
 forty validate            SURVEY THE RAISED FABRIC.
 forty open                OPEN THE PORCH IN YOUR BROWSER.
 forty offer               COMMIT AND PUSH THROUGH FORTY. ONE CONFIRMATION.
+forty atone <rite>        THE RITE OF RESTITUTION. FORWARD-ONLY. NO ERASURE.
 forty clean               SWEEP build\ AND dist\. ASKS FIRST.
 forty github status       REPORT THE GATEHOUSE.
 forty github connect      THE CONSECRATION RITE. ONE CONFIRMATION.
