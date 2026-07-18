@@ -129,8 +129,8 @@ contains
       'its own low-level LAPACK interfaces' // cite(7) // '. And the ' // &
       'traffic flows both ways &#8212; standard C interoperability ' // &
       '(<code>iso_c_binding</code>) makes Fortran kernels callable from ' // &
-      'the wider world' // cite(8) // '. This wing&#39;s successor, the ' // &
-      'Book of BLAS, will treat these foundations at length.')
+      'the wider world' // cite(8) // '. The <a href="book-of-blas.html">' // &
+      'Book of BLAS</a> treats these foundations at length.')
 
     call h2(body, 'why-institutions', 'Pillar V: institutional continuity')
     call para(body, 'The institutions that predict and simulate the ' // &

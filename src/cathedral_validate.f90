@@ -14,6 +14,7 @@ module cathedral_validate
                            list_repo_files, heresy_summary
   use cathedral_routes, only: route_t, routes
   use cathedral_testaments, only: verse_t, verses
+  use cathedral_blas, only: exhibit_axpy, exhibit_gemv, exhibit_gemm, fmt_num
   implicit none
   private
   public :: run_validate, extract_hrefs
@@ -96,6 +97,7 @@ contains
     call check_generation_doctrine(rs)
     call check_verses()
     call check_links(rs)
+    call check_blas_arithmetic()
 
     call rule()
     if (n_breach == 0) then
@@ -272,12 +274,26 @@ contains
       call check(ok_all, rs(i)%file // ': ALL INTERNAL DOORS OPEN')
     end do
 
-    call read_all_lines('content\why-it-still-stands\SOURCES.md', srclines)
+    call check_page_sources('dist\why-it-still-stands.html', &
+                            'content\why-it-still-stands\SOURCES.md', 'WHY WING')
+    call check_page_sources('dist\book-of-blas.html', &
+                            'content\book-of-blas\SOURCES.md', 'BOOK OF BLAS')
+  end subroutine check_links
+
+  !> Every external link on a sourced wing must stand in its own
+  !> declarative source record, and the wing must actually cite.
+  subroutine check_page_sources(page_path, record_path, label)
+    character(*), intent(in) :: page_path, record_path, label
+    type(string_t), allocatable :: urls(:), srclines(:)
+    character(:), allocatable :: doc, sources, u
+    integer :: i, j
+    logical :: ok_all
+    call read_all_lines(record_path, srclines)
     sources = ''
     do i = 1, size(srclines)
       sources = sources // srclines(i)%s // achar(10)
     end do
-    doc = slurp('dist\why-it-still-stands.html')
+    doc = slurp(page_path)
     call extract_hrefs(doc, urls)
     ok_all = .true.
     do j = 1, size(urls)
@@ -285,9 +301,67 @@ contains
       if (index(u, '://') == 0) cycle
       if (count_substr(sources, u) < 1) ok_all = .false.
     end do
-    call check(ok_all, 'EVERY EXTERNAL LINK ON THE WHY WING STANDS IN ITS SOURCE RECORD')
-    call check(size(urls) > 0, 'THE WHY WING SPEAKS WITH CITATIONS, NOT ASSERTIONS')
-  end subroutine check_links
+    call check(ok_all, 'EVERY EXTERNAL LINK ON THE ' // label // &
+               ' STANDS IN ITS SOURCE RECORD')
+    call check(size(urls) > 0, 'THE ' // label // &
+               ' SPEAKS WITH CITATIONS, NOT ASSERTIONS')
+  end subroutine check_page_sources
+
+  !> The Book of BLAS is recomputed at survey time. Dimensions must be
+  !> valid, the level sections rightly named, and every displayed value
+  !> must match the generator's own arithmetic.
+  subroutine check_blas_arithmetic()
+    use, intrinsic :: iso_fortran_env, only: real64
+    real(real64) :: alpha
+    real(real64), allocatable :: x(:), y(:), r(:), a(:, :), b(:, :), c(:, :)
+    real(real64), allocatable :: gx(:), gy(:)
+    character(:), allocatable :: page
+    logical :: ok1, ok2, ok3, all_in
+    integer :: i, j
+
+    page = slurp('dist\book-of-blas.html')
+    call check(count_substr(page, 'id="blas-level1"') == 1 .and. &
+               count_substr(page, 'AXPY') >= 1, &
+               'LEVEL 1 IS NAMED AND CLASSIFIED: AXPY')
+    call check(count_substr(page, 'id="blas-level2"') == 1 .and. &
+               count_substr(page, 'GEMV') >= 1, &
+               'LEVEL 2 IS NAMED AND CLASSIFIED: GEMV')
+    call check(count_substr(page, 'id="blas-level3"') == 1 .and. &
+               count_substr(page, 'GEMM') >= 1, &
+               'LEVEL 3 IS NAMED AND CLASSIFIED: GEMM')
+    call check(count_substr(page, 'id="blas-vs-lapack"') == 1, &
+               'BLAS AND LAPACK ARE TOLD APART')
+    call check(count_substr(page, 'id="blas-glossary"') == 1, &
+               'THE GLOSSARY STANDS')
+    call check(count_substr(page, 'reference arithmetic') >= 1, &
+               'THE PAGE CONFESSES WHO COMPUTED ITS NUMBERS')
+
+    call exhibit_axpy(alpha, x, y, r, ok1)
+    call check(ok1, 'AXPY DIMENSIONS ARE VALID')
+    all_in = .true.
+    do i = 1, size(r)
+      if (count_substr(page, '>' // fmt_num(r(i)) // '<') < 1) all_in = .false.
+    end do
+    call check(all_in, 'AXPY: DISPLAYED RESULTS MATCH THE ARITHMETIC')
+
+    call exhibit_gemv(a, gx, gy, ok2)
+    call check(ok2, 'GEMV DIMENSIONS ARE VALID (NON-SQUARE A)')
+    all_in = .true.
+    do i = 1, size(gy)
+      if (count_substr(page, '>' // fmt_num(gy(i)) // '<') < 1) all_in = .false.
+    end do
+    call check(all_in, 'GEMV: DISPLAYED RESULTS MATCH THE ARITHMETIC')
+
+    call exhibit_gemm(a, b, c, ok3)
+    call check(ok3, 'GEMM DIMENSIONS ARE VALID (INNER DIMENSIONS AGREE)')
+    all_in = .true.
+    do i = 1, size(c, 1)
+      do j = 1, size(c, 2)
+        if (count_substr(page, '>' // fmt_num(c(i, j)) // '<') < 1) all_in = .false.
+      end do
+    end do
+    call check(all_in, 'GEMM: DISPLAYED RESULTS MATCH THE ARITHMETIC')
+  end subroutine check_blas_arithmetic
 
   pure function ends_ci(s, suffix) result(r)
     character(*), intent(in) :: s, suffix

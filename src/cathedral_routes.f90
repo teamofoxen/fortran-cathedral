@@ -20,7 +20,7 @@ contains
   !> The registry. Order here is the order of the nave's signage.
   function routes() result(rs)
     type(route_t), allocatable :: rs(:)
-    allocate (rs(4))
+    allocate (rs(5))
 
     rs(1)%slug = 'nave'
     rs(1)%file = 'index.html'
@@ -44,11 +44,19 @@ contains
     rs(3)%description = 'Fixed-form and modern Fortran side by side: five ' // &
                         'verses, two liturgies, one language. Every verse compiles.'
 
-    rs(4)%slug = 'confessional'
-    rs(4)%file = 'confessional.html'
-    rs(4)%title = 'The Confessional'
-    rs(4)%nav = 'The Confessional'
-    rs(4)%description = 'A public accounting of every non-Fortran impurity ' // &
+    rs(4)%slug = 'blas'
+    rs(4)%file = 'book-of-blas.html'
+    rs(4)%title = 'The Book of BLAS'
+    rs(4)%nav = 'Book of BLAS'
+    rs(4)%description = 'What BLAS is, why it became foundational, the three ' // &
+                        'levels, and how LAPACK and higher ecosystems stand ' // &
+                        'on it. Every exhibit computed by Fortran.'
+
+    rs(5)%slug = 'confessional'
+    rs(5)%file = 'confessional.html'
+    rs(5)%title = 'The Confessional'
+    rs(5)%nav = 'The Confessional'
+    rs(5)%description = 'A public accounting of every non-Fortran impurity ' // &
                         'in the Fortran Cathedral. Executable heresy today: none.'
   end function routes
 

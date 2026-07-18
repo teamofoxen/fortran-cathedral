@@ -124,7 +124,14 @@ files the record under `build\audit\`. It also opened the second wing:
 fourteen citations cross-checked by the validator against
 `content/why-it-still-stands/SOURCES.md`.
 
-Further wings — the Book of BLAS, the Hall of Deprecated Syntax, the
-Saints of Numerical Computing — await their phases.
+Phase 4 opened **The Book of BLAS**: what BLAS is, the three levels with
+Fortran-computed AXPY/GEMV/GEMM exhibits (tables and proportional SVG
+operation maps, all generated), BLAS versus LAPACK, the call chain down
+from higher ecosystems, and a glossary — ten citations cross-checked
+against `content/book-of-blas/SOURCES.md`, and a validator that
+recomputes every displayed number and refuses the page if one disagrees.
+
+Further wings — the Hall of Deprecated Syntax, the Saints of Numerical
+Computing — await their phases.
 
 > THE LANGUAGE IS OLD. THE ARRAYS REMAIN CONTIGUOUS.

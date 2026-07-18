@@ -54,7 +54,10 @@ program test_forty
                            CLASS_FORTRAN, CLASS_DECLARATIVE, CLASS_HERESY, CLASS_OTHER
   use cathedral_highlight, only: highlight_line
   use cathedral_testaments, only: verse_t, verses
+  use, intrinsic :: iso_fortran_env, only: real64
   use cathedral_why, only: cite_t, cites
+  use cathedral_blas, only: axpy_ref, gemv_ref, gemm_ref, fmt_num, &
+                            exhibit_axpy, exhibit_gemv, exhibit_gemm, blas_cites
   use cathedral_validate, only: extract_hrefs
   use forty_audit, only: finding_t, add_finding, tree_paths, scan_tracked_html, &
                          scan_template_suspects, scan_tree_heresy, commit_exists, &
@@ -103,6 +106,8 @@ program test_forty
   call trial_testaments()
   call trial_html_purity()
   call trial_why_wing()
+  call trial_blas_arithmetic()
+  call trial_blas_page()
   call trial_rebuild_from_nothing()
   call trial_transgressions()
   call trial_commit_messages()
@@ -554,12 +559,13 @@ contains
     character(:), allocatable :: doc
     integer :: i
     rs = routes()
-    call check(size(rs) == 4, 'FOUR ROUTES STAND IN THE REGISTRY')
-    if (size(rs) == 4) then
+    call check(size(rs) == 5, 'FIVE ROUTES STAND IN THE REGISTRY')
+    if (size(rs) == 5) then
       call check_str(rs(1)%file, 'index.html', 'THE NAVE IS THE INDEX')
       call check_str(rs(2)%file, 'why-it-still-stands.html', 'WHY HAS ITS DOOR')
       call check_str(rs(3)%file, 'testaments.html', 'THE TESTAMENTS HAVE THEIR DOOR')
-      call check_str(rs(4)%file, 'confessional.html', 'THE CONFESSIONAL HAS ITS DOOR')
+      call check_str(rs(4)%file, 'book-of-blas.html', 'THE BOOK OF BLAS HAS ITS DOOR')
+      call check_str(rs(5)%file, 'confessional.html', 'THE CONFESSIONAL HAS ITS DOOR')
     end if
     allocate (nav(0))
     call append_nav(nav, 'nave')
@@ -612,9 +618,10 @@ contains
 
   subroutine trial_determinism()
     type(string_t), allocatable :: first(:), second(:)
-    character(32), parameter :: works(6) = [character(32) :: &
+    character(32), parameter :: works(7) = [character(32) :: &
       'dist\index.html', 'dist\confessional.html', &
       'dist\testaments.html', 'dist\why-it-still-stands.html', &
+      'dist\book-of-blas.html', &
       'dist\assets\ornament.svg', 'dist\routes.json']
     integer :: code, w, i
     logical :: same
@@ -781,6 +788,89 @@ contains
     call check(count_substr(page, 'href="testaments.html"') >= 1, &
                'THE WHY WING POINTS FORWARD TO THE TESTAMENTS')
   end subroutine trial_why_wing
+
+  subroutine trial_blas_arithmetic()
+    real(real64) :: alpha
+    real(real64), allocatable :: x(:), y(:), r(:), gy(:), a(:, :), b(:, :), c(:, :)
+    logical :: ok
+
+    ! AXPY: 2*[1,2,3,4] + [10,20,30,40] = [12,24,36,48].
+    call exhibit_axpy(alpha, x, y, r, ok)
+    call check(ok .and. size(r) == 4, 'AXPY COMPUTES A LENGTH-4 RESULT')
+    call check(nearly(r(1), 12.0_real64) .and. nearly(r(2), 24.0_real64) .and. &
+               nearly(r(3), 36.0_real64) .and. nearly(r(4), 48.0_real64), &
+               'AXPY: 2X + Y IS EXACTLY RIGHT')
+    call axpy_ref(alpha, x, [1.0_real64, 2.0_real64], r, ok)
+    call check(.not. ok, 'AXPY REFUSES MISMATCHED LENGTHS')
+
+    ! GEMV: [[1,2,3],[4,5,6]] * [7,8,9] = [50,122]; A is 2x3, non-square.
+    call exhibit_gemv(a, x, gy, ok)
+    call check(ok .and. size(a, 1) == 2 .and. size(a, 2) == 3, &
+               'GEMV WORKS ON A NON-SQUARE MATRIX')
+    call check(nearly(gy(1), 50.0_real64) .and. nearly(gy(2), 122.0_real64), &
+               'GEMV: AX IS EXACTLY RIGHT')
+    call gemv_ref(a, [1.0_real64, 2.0_real64], gy, ok)
+    call check(.not. ok, 'GEMV REFUSES MISMATCHED DIMENSIONS')
+
+    ! GEMM: (2x3)(3x2) = [[22,28],[49,64]].
+    call exhibit_gemm(a, b, c, ok)
+    call check(ok .and. size(c, 1) == 2 .and. size(c, 2) == 2, &
+               'GEMM YIELDS THE 2X2 PRODUCT OF RECTANGULAR OPERANDS')
+    call check(nearly(c(1, 1), 22.0_real64) .and. nearly(c(1, 2), 28.0_real64) .and. &
+               nearly(c(2, 1), 49.0_real64) .and. nearly(c(2, 2), 64.0_real64), &
+               'GEMM: AB IS EXACTLY RIGHT')
+    call gemm_ref(a, c, b, ok)
+    call check(.not. ok, 'GEMM REFUSES DISAGREEING INNER DIMENSIONS')
+    call check_str(fmt_num(49.0_real64), '49.0', 'NUMBERS ARE DRESSED CONSISTENTLY')
+  end subroutine trial_blas_arithmetic
+
+  subroutine trial_blas_page()
+    character(:), allocatable :: page, sources, u
+    type(string_t), allocatable :: urls(:), srclines(:)
+    integer :: i, j
+    logical :: ok_all
+
+    page = slurp_file('dist\book-of-blas.html')
+    call check(count_substr(page, 'id="blas-level1"') == 1 .and. &
+               count_substr(page, 'id="blas-level2"') == 1 .and. &
+               count_substr(page, 'id="blas-level3"') == 1, &
+               'THE THREE LEVELS STAND ON THE PAGE')
+    call check(count_substr(page, 'id="blas-vs-lapack"') == 1 .and. &
+               count_substr(page, 'id="blas-chain"') == 1 .and. &
+               count_substr(page, 'id="blas-glossary"') == 1, &
+               'LAPACK, THE CHAIN, AND THE GLOSSARY STAND')
+    call check(count_substr(page, '>12.0<') >= 1 .and. &
+               count_substr(page, '>122.0<') >= 1 .and. &
+               count_substr(page, '>64.0<') >= 1, &
+               'THE COMPUTED NUMBERS STAND IN THE TABLES')
+    call check(count_substr(page, 'reference arithmetic') >= 1, &
+               'THE PAGE CONFESSES ITS OWN ARITHMETIC HONESTLY')
+    call check(count_substr(page, 'href="testaments.html"') >= 1 .and. &
+               count_substr(page, 'href="why-it-still-stands.html"') >= 1, &
+               'THE BOOK POINTS TO ITS SIBLING WINGS')
+    call check(count_substr(page, '<svg') == 3, &
+               'THREE OPERATION MAPS ARE DRAWN INLINE')
+
+    call read_all_lines('content\book-of-blas\SOURCES.md', srclines)
+    sources = ''
+    do i = 1, size(srclines)
+      sources = sources // srclines(i)%s // achar(10)
+    end do
+    call extract_hrefs(page, urls)
+    ok_all = .true.
+    do j = 1, size(urls)
+      u = urls(j)%s
+      if (index(u, '://') == 0) cycle
+      if (count_substr(sources, u) < 1) ok_all = .false.
+    end do
+    call check(ok_all, 'EVERY EXTERNAL LINK OF THE BOOK STANDS IN ITS RECORD')
+  end subroutine trial_blas_page
+
+  pure function nearly(a, b) result(r)
+    real(real64), intent(in) :: a, b
+    logical :: r
+    r = abs(a - b) < 1.0e-9_real64
+  end function nearly
 
   subroutine trial_rebuild_from_nothing()
     type(run_result) :: rr
