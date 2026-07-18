@@ -1,0 +1,22 @@
+name = "cathedral"
+version = "0.1.0"
+
+[build]
+auto-executables = false
+auto-tests = false
+auto-examples = false
+
+[fortran]
+implicit-typing = false
+implicit-external = false
+source-form = "free"
+
+[[executable]]
+name = "forty"
+source-dir = "app"
+main = "forty.f90"
+
+[[test]]
+name = "test_forty"
+source-dir = "test"
+main = "test_forty.f90"
